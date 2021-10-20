@@ -59,23 +59,22 @@ std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(const 
     if (auto err = to_sockaddr_in(address, ip.c_str(), port)) {
         return err.value();
     }
-    int fd = socket(address.sin_family, SOCK_STREAM, 0);
+    int fd = ::socket(address.sin_family, SOCK_STREAM, 0);
     if (fd == -1) {
         return fmt::format("socket cannot be created, reason:{}", std::strerror(errno));
     }
     if (settings_.reuse_port) {
         set_reuse_port(fd);
     }
-    if (connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1) {
+    if (::connect(fd, reinterpret_cast<::sockaddr*>(&address), sizeof(address)) == -1) {
         std::string err = fmt::format("socket cannot be listened, reason:{}", std::strerror(errno));
         ::close(fd);
         return err;
     }
     set_nonblock(fd);
     std::unique_lock<std::mutex> lck { mtx_ };
-    auto runtime = select_runtime();
     std::shared_ptr<TcpSocket> socket { new TcpSocket(fd) };
-    runtime->register_handle(socket);
+    select_runtime()->register_handle(socket);
     return socket;
 }
 

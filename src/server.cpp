@@ -25,12 +25,11 @@ class TcpAcceptor : public BaseAcceptor {
 
     protected:
     void do_accept() override {
-        sockaddr_in socket_address {};
-        socklen_t address_size = sizeof(socket_address);
+        ::sockaddr_in socket_address {};
+        ::socklen_t address_size = sizeof(socket_address);
         while (true) {
-            int socket_fd = accept(fd_, (sockaddr*)&socket_address, &address_size);
+            int socket_fd = ::accept(fd_, (::sockaddr*)&socket_address, &address_size);
             if (socket_fd == -1) {
-                std::string err_msg { std::strerror(errno) };
                 return;
             }
             set_nonblock(socket_fd);
@@ -109,17 +108,16 @@ Server::listen_tcp_endpoint(const std::string& ip, uint16_t port, std::function<
         int listen_fd = ::socket(address.sin_family, SOCK_STREAM, 0);
         if (listen_fd == -1) {
             std::string err = fmt::format("socket cannot open, reason:{}", std::strerror(errno));
-            ::close(listen_fd);
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
                 ::close(listen_fds[i]);
             }
             return err;
         }
         set_reuse_port(listen_fd);
-        if (::bind(listen_fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
+        listen_fds.push_back(listen_fd);
+        if (::bind(listen_fd, reinterpret_cast<::sockaddr*>(&address), sizeof(address)) != 0) {
             std::string err =
             fmt::format("socket cannot bind with address{}, reason:{}", from_sockaddr_in(address), std::strerror(errno));
-            ::close(listen_fd);
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
                 ::close(listen_fds[i]);
             }
@@ -127,14 +125,12 @@ Server::listen_tcp_endpoint(const std::string& ip, uint16_t port, std::function<
         }
         if (::listen(listen_fd, SOMAXCONN) == -1) {
             std::string err = fmt::format("socket cannot be listened, reason:{}", std::strerror(errno));
-            ::close(listen_fd);
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
                 ::close(listen_fds[i]);
             }
             return err;
         }
         set_nonblock(listen_fd);
-        listen_fds.push_back(listen_fd);
     }
     for (std::size_t i = 0; i < listen_fds.size(); i++) {
         auto& [runtime, thread] = workers_[i];
