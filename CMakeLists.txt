@@ -84,6 +84,8 @@ ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/release/lib/
 )
 #--------------------for the lib end--------------------
 
+
+
 #--------------------for the examples start--------------------
 if(NOT NO_EXAMPLES)
     add_executable(cmd_echo_client ${PROJECT_SOURCE_DIR}/example/echo/cmd_client.cpp)
