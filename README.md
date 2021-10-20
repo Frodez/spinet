@@ -23,5 +23,5 @@ The library path is spinet/build/lib, and the example path is spinet/build/bin.
 
 # **Third-party dependencies**
 
-1.[fmt 8.0.1](https://github.com/fmtlib/fmt)  
-2.[robin-map v0.6.3](https://github.com/Tessil/robin-map)  
+1.[fmt 8.0.1](https://github.com/fmtlib/fmt/releases/tag/8.0.1)  
+2.[robin-map v0.6.3](https://github.com/Tessil/robin-map/releases/tag/v0.6.3)  
