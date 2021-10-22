@@ -109,7 +109,6 @@ void Runtime::register_handle(std::shared_ptr<Handle> handle) {
     auto prev = all_handles_.find(raw_handle->fd_);
     if (prev == all_handles_.end()) {
         // insert the new handle and add the epoll_event
-        all_handles_.insert({ raw_handle->fd_, handle });
         if (auto socket = dynamic_cast<BaseSocket*>(raw_handle)) {
             ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
             all_sockets_.insert(socket);
@@ -117,20 +116,17 @@ void Runtime::register_handle(std::shared_ptr<Handle> handle) {
             ev.events = EPOLLIN | EPOLLRDHUP;
         }
         ::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, raw_handle->fd_, &ev);
+        all_handles_.insert({ raw_handle->fd_, handle });
     } else {
         // pre-remove the old handle
-        {
-            auto prev_handle = prev->second;
-            Handle* prev_raw_handle = prev_handle.get();
-            removable_handles_.push_back(prev_handle);
-            all_handles_.erase(prev);
-            if (auto socket = dynamic_cast<BaseSocket*>(prev_raw_handle)) {
-                all_sockets_.erase(socket);
-            }
-            prev_raw_handle->runtime_.reset(); // prevent the recursive call for deregister_handle
+        auto prev_handle = prev->second;
+        Handle* prev_raw_handle = prev_handle.get();
+        removable_handles_.push_back(prev_handle);
+        if (auto socket = dynamic_cast<BaseSocket*>(prev_raw_handle)) {
+            all_sockets_.erase(socket);
         }
+        prev_raw_handle->runtime_.reset(); // prevent the recursive call for deregister_handle
         // insert the new handle and update the epoll_event
-        all_handles_.insert({ raw_handle->fd_, handle });
         if (auto socket = dynamic_cast<BaseSocket*>(raw_handle)) {
             ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
             all_sockets_.insert(socket);
@@ -138,6 +134,8 @@ void Runtime::register_handle(std::shared_ptr<Handle> handle) {
             ev.events = EPOLLIN | EPOLLRDHUP;
         }
         ::epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, raw_handle->fd_, &ev);
+        // update the all_handles_
+        prev.value() = handle;
     }
 }
 
