@@ -103,6 +103,7 @@ std::size_t Runtime::get_current_load() {
 
 void Runtime::register_handle(std::shared_ptr<Handle> handle) {
     Handle* raw_handle = handle.get();
+    raw_handle->runtime_ = weak_from_this();
     ::epoll_event ev { 0, { 0 } };
     ev.data.ptr = raw_handle;
     std::unique_lock<std::mutex> handles_lck { handles_mtx_ };

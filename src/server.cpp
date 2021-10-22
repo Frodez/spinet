@@ -14,9 +14,8 @@ namespace spinet {
 
 class TcpAcceptor : public BaseAcceptor {
     public:
-    TcpAcceptor(int fd, std::weak_ptr<Runtime> runtime, Server::Settings* settings, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback) {
+    TcpAcceptor(int fd, Server::Settings* settings, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback) {
         fd_ = fd;
-        runtime_ = runtime;
         settings_ = settings;
         accept_callback_ = accept_callback;
     }
@@ -134,7 +133,7 @@ Server::listen_tcp_endpoint(const std::string& ip, uint16_t port, std::function<
     }
     for (std::size_t i = 0; i < listen_fds.size(); i++) {
         auto& [runtime, thread] = workers_[i];
-        std::shared_ptr<TcpAcceptor> acceptor { new TcpAcceptor(listen_fds[i], runtime, &settings_, accept_callback) };
+        std::shared_ptr<TcpAcceptor> acceptor { new TcpAcceptor(listen_fds[i], &settings_, accept_callback) };
         runtime->register_handle(acceptor);
     }
     return {};

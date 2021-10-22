@@ -8,7 +8,7 @@ namespace spinet {
 
 class Runtime;
 
-class Handle : public std::enable_shared_from_this<Handle> {
+class Handle {
     public:
     virtual ~Handle();
     virtual void close();
