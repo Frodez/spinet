@@ -104,61 +104,62 @@ std::size_t Runtime::get_current_load() {
 void Runtime::register_handle(std::shared_ptr<Handle> handle) {
     Handle* raw_handle = handle.get();
     raw_handle->runtime_ = weak_from_this();
+    int handle_fd = raw_handle->fd_;
     ::epoll_event ev { 0, { 0 } };
     ev.data.ptr = raw_handle;
     std::unique_lock<std::mutex> handles_lck { handles_mtx_ };
-    auto prev = all_handles_.find(raw_handle->fd_);
+    auto prev = all_handles_.find(handle_fd);
     if (prev == all_handles_.end()) {
-        // insert the new handle and add the epoll_event
+        // insert
         if (auto socket = dynamic_cast<BaseSocket*>(raw_handle)) {
-            ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+            ev.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLET | EPOLLRDHUP;
             all_sockets_.insert(socket);
         } else {
             ev.events = EPOLLIN | EPOLLRDHUP;
         }
-        ::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, raw_handle->fd_, &ev);
-        all_handles_.insert({ raw_handle->fd_, handle });
+        ::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, handle_fd, &ev);
+        all_handles_.insert({ handle_fd, handle });
     } else {
         // pre-remove the old handle
         auto prev_handle = prev->second;
-        Handle* prev_raw_handle = prev_handle.get();
         removable_handles_.push_back(prev_handle);
+        Handle* prev_raw_handle = prev_handle.get();
+        prev_raw_handle->runtime_.reset(); // prevent the recursive call for deregister_handle
         if (auto socket = dynamic_cast<BaseSocket*>(prev_raw_handle)) {
             all_sockets_.erase(socket);
         }
-        prev_raw_handle->runtime_.reset(); // prevent the recursive call for deregister_handle
-        // insert the new handle and update the epoll_event
+        // update
         if (auto socket = dynamic_cast<BaseSocket*>(raw_handle)) {
-            ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+            ev.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLET | EPOLLRDHUP;
             all_sockets_.insert(socket);
         } else {
             ev.events = EPOLLIN | EPOLLRDHUP;
         }
-        ::epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, raw_handle->fd_, &ev);
-        // update the all_handles_
+        ::epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, handle_fd, &ev);
         prev.value() = handle;
     }
 }
 
 void Runtime::deregister_handle(Handle* handle) {
+    int handle_fd = handle->fd_;
     std::unique_lock<std::mutex> handles_lck { handles_mtx_ };
-    auto find = all_handles_.find(handle->fd_);
+    auto find = all_handles_.find(handle_fd);
     if (find == all_handles_.end() || find->second.get() != handle) {
         return;
     }
     // pre-remove the old handle and delete the epoll_event
+    handle->runtime_.reset(); // prevent the recursive call for deregister_handle
     ::epoll_event ev { 0, { 0 } };
     ev.data.ptr = handle;
     if (auto socket = dynamic_cast<BaseSocket*>(handle)) {
-        ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+        ev.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLET | EPOLLRDHUP;
         all_sockets_.erase(socket);
     } else {
         ev.events = EPOLLIN | EPOLLRDHUP;
     }
-    ::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, handle->fd_, &ev);
+    ::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, handle_fd, &ev);
     removable_handles_.push_back(find->second);
     all_handles_.erase(find);
-    handle->runtime_.reset(); // prevent the recursive call for deregister_handle
 }
 
 void Runtime::release_all_handles() {
