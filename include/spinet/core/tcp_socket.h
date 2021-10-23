@@ -3,11 +3,8 @@
 #include <atomic>
 #include <functional>
 #include <list>
-#include <memory>
 #include <mutex>
-#include <optional>
-#include <queue>
-#include <vector>
+#include <utility>
 
 #include "error.h"
 #include "handle.h"
