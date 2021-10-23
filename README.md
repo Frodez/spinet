@@ -3,7 +3,7 @@
 
 # **spinet**
 
-A simple network library powered by epoll.
+A simple network library powered by epoll and proactor pattern.
 
 # **Installation**
 
