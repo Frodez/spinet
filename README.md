@@ -13,13 +13,11 @@ A simple network library powered by epoll and proactor pattern.
 
 ```
 git clone https://github.com/Frodez/spinet
-mkdir spinet/build
-cd spinet/build
-cmake ..
-make
+cmake -B spinet/build -S spinet/ -DCMAKE_BUILD_TYPE=Release
+cmake --build spinet/build --config Release --target install
 ```
 
-The library path is `spinet/build/lib`, the include path is `spinet/include`, and the example path is `spinet/build/bin`.
+The default installation path is `spinet/release`.
 
 # **Third-party dependencies**
 
