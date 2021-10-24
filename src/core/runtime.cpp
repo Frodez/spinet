@@ -96,7 +96,7 @@ bool Runtime::is_running() {
     return running_;
 }
 
-std::size_t Runtime::get_current_load() {
+std::size_t Runtime::current_load() {
     std::unique_lock<std::mutex> lck { handles_mtx_ };
     return all_handles_.size();
 }

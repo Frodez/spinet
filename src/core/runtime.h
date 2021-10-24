@@ -24,7 +24,7 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
     std::optional<std::string> run();
     void stop();
     bool is_running();
-    std::size_t get_current_load();
+    std::size_t current_load();
     void register_handle(std::shared_ptr<Handle> handle);
     void deregister_handle(Handle* handle);
 
