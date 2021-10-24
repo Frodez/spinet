@@ -1,7 +1,7 @@
 #pragma once
 
-#include <optional>
 #include <string>
+#include <variant>
 
 #include "arpa/inet.h"
 #include "fcntl.h"
@@ -24,21 +24,23 @@ inline void set_reuse_port(int fd) {
 }
 
 inline std::string from_sockaddr_in(const ::sockaddr_in& address) {
-    char buf[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)];
-    ::inet_ntop(address.sin_family, &address.sin_addr, buf, address.sin_family == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN);
-    return fmt::format("{}:{}", buf, ntohs(address.sin_port));
+    std::size_t len = address.sin_family == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;
+    char buf[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)] = { 0 };
+    ::inet_ntop(address.sin_family, &address.sin_addr, buf, len);
+    return { buf };
 }
 
-inline std::optional<std::string> to_sockaddr_in(::sockaddr_in& address, const char* ip, uint16_t port) {
+inline std::variant<::sockaddr_in, std::string> to_sockaddr_in(const char* ip, uint16_t port) {
+    ::sockaddr_in address { 0 };
     address.sin_port = htons(port);
     if (::inet_pton(AF_INET, ip, &address.sin_addr) == 1) {
         address.sin_family = AF_INET;
-        return {};
+        return address;
     } else if (::inet_pton(AF_INET6, ip, &address.sin_addr) == 1) {
         address.sin_family = AF_INET6;
-        return {};
+        return address;
     } else {
-        return fmt::format("address cannot be parsed, reason:{}", std::strerror(errno));
+        return fmt::format("parse failed, reason:{}", std::strerror(errno));
     }
 }
 

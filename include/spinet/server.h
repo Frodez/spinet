@@ -28,8 +28,7 @@ class Server {
 
     std::optional<std::string> with_settings(Settings settings);
 
-    std::optional<std::string>
-    listen_tcp_endpoint(const std::string& ip, uint16_t port, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback);
+    std::optional<std::string> listen_tcp_endpoint(Address& address, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback);
 
     void run();
     void stop();

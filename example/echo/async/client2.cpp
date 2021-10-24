@@ -21,6 +21,11 @@ int main(int argc, char* argv[]) {
         std::cout << "port should be between 0 and 65535." << std::endl;
         return EXIT_FAILURE;
     }
+    auto address = spinet::Address::parse(argv[1], port);
+    if (address.index() == 1) {
+        std::cout << std::get<1>(address) << std::endl;
+        return EXIT_FAILURE;
+    }
     ptr = nullptr;
     long worker_threads = strtol(argv[3], &ptr, 10);
     if (*ptr != 0) {
@@ -53,7 +58,7 @@ int main(int argc, char* argv[]) {
     uint64_t connectedCount { 0 };
     std::atomic<uint64_t> closedCount { 0 };
     for (std::size_t i = 0; i < (std::size_t)times; i++) {
-        auto res = client.tcp_connect(argv[1], port);
+        auto res = client.tcp_connect(std::get<0>(address));
         if (res.index() == 1) {
             std::cout << std::get<1>(res) << std::endl;
             client.stop();

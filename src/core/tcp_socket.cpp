@@ -112,8 +112,9 @@ class TcpWriteTask {
 
 using namespace spinet;
 
-TcpSocket::TcpSocket(int fd)
-: closed_ { false } {
+TcpSocket::TcpSocket(int fd, Address peer)
+: closed_ { false }
+, peer_ { peer } {
     fd_ = fd;
 }
 
@@ -208,6 +209,10 @@ void TcpSocket::close() {
             lck.lock();
         }
     }
+}
+
+Address TcpSocket::peer() {
+    return peer_;
 }
 
 void TcpSocket::do_read() {

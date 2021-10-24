@@ -26,7 +26,7 @@ class Client {
     ~Client();
 
     std::optional<std::string> with_settings(Settings settings);
-    std::variant<std::shared_ptr<TcpSocket>, std::string> tcp_connect(const std::string& ip, uint16_t port);
+    std::variant<std::shared_ptr<TcpSocket>, std::string> tcp_connect(Address& address);
 
     void run();
     void stop();

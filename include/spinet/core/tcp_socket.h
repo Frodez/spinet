@@ -6,8 +6,9 @@
 #include <mutex>
 #include <utility>
 
-#include "result.h"
+#include "address.h"
 #include "handle.h"
+#include "result.h"
 
 namespace spinet {
 
@@ -19,7 +20,7 @@ class TcpSocket : public BaseSocket {
     using ReadCallback = std::function<void(Result, std::size_t)>;
     using WriteCallback = std::function<void(Result, std::size_t)>;
 
-    TcpSocket(int fd);
+    TcpSocket(int fd, Address peer);
     ~TcpSocket();
 
     void async_read(uint8_t* buf, std::size_t size, ReadCallback callback);
@@ -30,6 +31,7 @@ class TcpSocket : public BaseSocket {
     void cancel();
     bool is_closed();
     void close() override;
+    Address peer();
 
     private:
     TcpSocket(TcpSocket&& other) = delete;
@@ -47,6 +49,8 @@ class TcpSocket : public BaseSocket {
 
     std::mutex write_mtx_;
     std::list<std::pair<TcpWriteTask, WriteCallback>> write_task_queue_;
+
+    Address peer_;
 };
 
 }

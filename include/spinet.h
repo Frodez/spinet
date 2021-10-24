@@ -1,7 +1,8 @@
 #pragma once
 
-#include "spinet/core/result.h"
+#include "spinet/core/address.h"
 #include "spinet/core/handle.h"
+#include "spinet/core/result.h"
 #include "spinet/core/tcp_socket.h"
 
 #include "spinet/client.h"

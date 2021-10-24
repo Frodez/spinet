@@ -35,7 +35,8 @@ class TcpAcceptor : public BaseAcceptor {
             if (settings_->reuse_port) {
                 set_reuse_port(socket_fd);
             }
-            std::shared_ptr<TcpSocket> socket { new TcpSocket(socket_fd) };
+            std::shared_ptr<TcpSocket> socket { new TcpSocket(
+            socket_fd, std::get<0>(Address::parse(from_sockaddr_in(socket_address), ntohs(socket_address.sin_port)))) };
             if (auto runtime = runtime_.lock()) {
                 runtime->register_handle(socket);
             }
@@ -89,22 +90,22 @@ std::optional<std::string> Server::with_settings(Settings settings) {
     return {};
 }
 
-std::optional<std::string>
-Server::listen_tcp_endpoint(const std::string& ip, uint16_t port, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback) {
+std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback) {
     {
         std::unique_lock<std::mutex> lck { mtx_ };
         if (running_) {
             return "server has been running";
         }
     }
-    ::sockaddr_in address {};
-    if (auto err = to_sockaddr_in(address, ip.c_str(), port)) {
-        return err;
+    auto res = to_sockaddr_in(address.address().c_str(), address.port());
+    if (res.index() == 1) {
+        return std::get<1>(res);
     }
+    ::sockaddr_in socket_address = std::get<0>(res);
     std::vector<int> listen_fds {};
     std::unique_lock<std::mutex> lck { mtx_ };
     for (std::size_t i = 0; i < workers_.size(); i++) {
-        int listen_fd = ::socket(address.sin_family, SOCK_STREAM, 0);
+        int listen_fd = ::socket(socket_address.sin_family, SOCK_STREAM, 0);
         if (listen_fd == -1) {
             std::string err = fmt::format("socket cannot open, reason:{}", std::strerror(errno));
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
@@ -114,9 +115,9 @@ Server::listen_tcp_endpoint(const std::string& ip, uint16_t port, std::function<
         }
         set_reuse_port(listen_fd);
         listen_fds.push_back(listen_fd);
-        if (::bind(listen_fd, reinterpret_cast<::sockaddr*>(&address), sizeof(address)) != 0) {
-            std::string err =
-            fmt::format("socket cannot bind with address{}, reason:{}", from_sockaddr_in(address), std::strerror(errno));
+        if (::bind(listen_fd, reinterpret_cast<::sockaddr*>(&socket_address), sizeof(socket_address)) != 0) {
+            std::string err = fmt::format("socket cannot bind with address {}:{}, reason:{}",
+            from_sockaddr_in(socket_address), ntohs(socket_address.sin_port), std::strerror(errno));
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
                 ::close(listen_fds[i]);
             }

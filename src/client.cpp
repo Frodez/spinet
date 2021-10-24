@@ -51,29 +51,31 @@ std::optional<std::string> Client::with_settings(Settings settings) {
     return {};
 }
 
-std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(const std::string& ip, uint16_t port) {
+std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(Address& address) {
     if (!running_) {
         return "client is not running";
     }
-    ::sockaddr_in address {};
-    if (auto err = to_sockaddr_in(address, ip.c_str(), port)) {
-        return err.value();
+    auto res = to_sockaddr_in(address.address().c_str(), address.port());
+    if (res.index() == 1) {
+        return std::get<1>(res);
     }
-    int fd = ::socket(address.sin_family, SOCK_STREAM, 0);
+    ::sockaddr_in socket_address = std::get<0>(res);
+    int fd = ::socket(socket_address.sin_family, SOCK_STREAM, 0);
     if (fd == -1) {
         return fmt::format("socket cannot be created, reason:{}", std::strerror(errno));
     }
     if (settings_.reuse_port) {
         set_reuse_port(fd);
     }
-    if (::connect(fd, reinterpret_cast<::sockaddr*>(&address), sizeof(address)) == -1) {
+    if (::connect(fd, reinterpret_cast<::sockaddr*>(&socket_address), sizeof(socket_address)) == -1) {
         std::string err = fmt::format("socket cannot be listened, reason:{}", std::strerror(errno));
         ::close(fd);
         return err;
     }
     set_nonblock(fd);
     std::unique_lock<std::mutex> lck { mtx_ };
-    std::shared_ptr<TcpSocket> socket { new TcpSocket(fd) };
+    std::shared_ptr<TcpSocket> socket { new TcpSocket(
+    fd, std::get<0>(Address::parse(from_sockaddr_in(socket_address), ntohs(socket_address.sin_port)))) };
     select_runtime()->register_handle(socket);
     return socket;
 }
