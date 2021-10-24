@@ -6,11 +6,11 @@
 
 namespace spinet {
 
-class Error {
+class Result {
     public:
-    static Error ok();
-    static Error system_error(int ec);
-    static Error custom_error(const std::string& msg);
+    static Result ok();
+    static Result system_error(int ec);
+    static Result custom_error(const std::string& msg);
 
     operator bool();
     bool operator!();
@@ -18,9 +18,9 @@ class Error {
     std::string to_string();
 
     private:
-    explicit Error();
-    explicit Error(int ec);
-    explicit Error(const std::string& msg);
+    explicit Result();
+    explicit Result(int ec);
+    explicit Result(const std::string& msg);
 
     std::optional<std::variant<int, std::string>> err_;
 };

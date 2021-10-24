@@ -1,42 +1,42 @@
 #include <cstring>
 
-#include "spinet/core/error.h"
+#include "spinet/core/result.h"
 
 using namespace spinet;
 
-Error Error::ok() {
-    return Error {};
+Result Result::ok() {
+    return Result {};
 }
 
-Error Error::system_error(int ec) {
-    return Error { ec };
+Result Result::system_error(int ec) {
+    return Result { ec };
 }
 
-Error Error::custom_error(const std::string& msg) {
-    return Error { msg };
+Result Result::custom_error(const std::string& msg) {
+    return Result { msg };
 }
 
-Error::Error()
+Result::Result()
 : err_ {} {
 }
 
-Error::Error(int ec)
+Result::Result(int ec)
 : err_ { ec } {
 }
 
-Error::Error(const std::string& msg)
+Result::Result(const std::string& msg)
 : err_ { msg } {
 }
 
-Error::operator bool() {
+Result::operator bool() {
     return err_.has_value();
 }
 
-bool Error::operator!() {
+bool Result::operator!() {
     return !err_.has_value();
 }
 
-bool Error::is_custom_error() {
+bool Result::is_custom_error() {
     if (err_ && err_.value().index() == 1) {
         return false;
     } else {
@@ -44,7 +44,7 @@ bool Error::is_custom_error() {
     }
 }
 
-std::string Error::to_string() {
+std::string Result::to_string() {
     if (!err_) {
         return {};
     } else {

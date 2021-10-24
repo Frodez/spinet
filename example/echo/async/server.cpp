@@ -4,24 +4,21 @@
 
 long payload_size = 0;
 
-void read_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
+void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
 
-void write_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
+void write_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
 
-void read_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
-    if (err) {
-        // std::cout << err.to_string() << std::endl;
+void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
+    if (res) {
         socket->close();
         return;
     }
-    // std::cout << "read:" << std::string_view { (char*)buffer.get(), size } << std::endl;
     socket->async_write_some(
     buffer.get(), size, std::bind(write_callback, std::placeholders::_1, std::placeholders::_2, socket, buffer));
 }
 
-void write_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
-    if (err) {
-        // std::cout << err.to_string() << std::endl;
+void write_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
+    if (res) {
         socket->close();
         return;
     }
@@ -64,7 +61,6 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     error = server.listen_tcp_endpoint(argv[1], port, [](std::shared_ptr<spinet::TcpSocket> socket) {
-        // std::cout << "connected\n";
         std::shared_ptr<uint8_t[]> buffer { new uint8_t[payload_size] };
         socket->async_read_some(buffer.get(), payload_size,
         std::bind(read_callback, std::placeholders::_1, std::placeholders::_2, socket, buffer));

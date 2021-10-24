@@ -6,7 +6,7 @@
 #include <mutex>
 #include <utility>
 
-#include "error.h"
+#include "result.h"
 #include "handle.h"
 
 namespace spinet {
@@ -16,8 +16,8 @@ class TcpWriteTask;
 
 class TcpSocket : public BaseSocket {
     public:
-    using ReadCallback = std::function<void(Error, std::size_t)>;
-    using WriteCallback = std::function<void(Error, std::size_t)>;
+    using ReadCallback = std::function<void(Result, std::size_t)>;
+    using WriteCallback = std::function<void(Result, std::size_t)>;
 
     TcpSocket(int fd);
     ~TcpSocket();

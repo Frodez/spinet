@@ -60,14 +60,12 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
         connectedCount++;
-        // std::cout << "connection established\n";
         auto socket = std::get<0>(res);
         std::shared_ptr<uint8_t[]> buffer { new uint8_t[payload_size] };
         memset(buffer.get(), 'a', payload_size - 1);
         memset(buffer.get() + payload_size - 1, '\0', 1);
-        socket->async_write_some(buffer.get(), payload_size, [&closedCount, socket, buffer](spinet::Error err, std::size_t size) {
-            socket->async_read_some(buffer.get(), payload_size, [&closedCount, socket, buffer](spinet::Error err, std::size_t size) {
-                // std::cout << "closed\n";
+        socket->async_write_some(buffer.get(), payload_size, [&closedCount, socket, buffer](spinet::Result res, std::size_t size) {
+            socket->async_read_some(buffer.get(), payload_size, [&closedCount, socket, buffer](spinet::Result res, std::size_t size) {
                 socket->close();
                 closedCount++;
             });

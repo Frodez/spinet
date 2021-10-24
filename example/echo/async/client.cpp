@@ -5,24 +5,21 @@
 
 long payload_size = 0;
 
-void read_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
+void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
 
-void write_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
+void write_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
 
-void read_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
-    if (err) {
-        // std::cout << err.to_string() << std::endl;
+void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
+    if (res) {
         socket->close();
         return;
     }
-    // std::cout << "read:" << std::string_view { (char*)buffer.get(), size } << std::endl;
     socket->async_write_some(
     buffer.get(), size, std::bind(write_callback, std::placeholders::_1, std::placeholders::_2, socket, buffer));
 }
 
-void write_callback(spinet::Error err, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
-    if (err) {
-        // std::cout << err.to_string() << std::endl;
+void write_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
+    if (res) {
         socket->close();
         return;
     }

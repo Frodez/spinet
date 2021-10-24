@@ -30,9 +30,8 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     void recv_request_header() {
         auto self = shared_from_this();
         socket_->async_read_some(
-        header_.get() + header_len_, header_cap_ - header_len_, [this, self](spinet::Error err, std::size_t len) {
-            if (err) {
-                // std::cout << err.to_string() << std::endl;
+        header_.get() + header_len_, header_cap_ - header_len_, [this, self](spinet::Result res, std::size_t len) {
+            if (res) {
                 socket_->close();
                 return;
             }
@@ -48,17 +47,14 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
                 recv_request_header();
                 return;
             }
-            // std::cout << std::string_view { (char*)header_.get(), header_index + 1 } << std::endl;
             send_response();
         });
     };
     void send_response() {
         auto self = shared_from_this();
-        socket_->async_write((uint8_t*)RESPONSE, sizeof(RESPONSE), [this, self](spinet::Error err, std::size_t len) {
-            if (err) {
-                // std::cout << err.to_string() << std::endl;
+        socket_->async_write((uint8_t*)RESPONSE, sizeof(RESPONSE), [this, self](spinet::Result res, std::size_t len) {
+            if (res) {
             }
-            // recv_request_header();
             socket_->close();
         });
     };

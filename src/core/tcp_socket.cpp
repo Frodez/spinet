@@ -194,7 +194,7 @@ void TcpSocket::close() {
             auto [task, callback] = read_task_queue_.front();
             read_task_queue_.pop_front();
             lck.unlock();
-            callback(Error::system_error(EBADF), task.finished_size());
+            callback(Result::system_error(EBADF), task.finished_size());
             lck.lock();
         }
     }
@@ -204,7 +204,7 @@ void TcpSocket::close() {
             auto [task, callback] = write_task_queue_.front();
             write_task_queue_.pop_front();
             lck.unlock();
-            callback(Error::system_error(EBADF), task.finished_size());
+            callback(Result::system_error(EBADF), task.finished_size());
             lck.lock();
         }
     }
@@ -223,11 +223,11 @@ void TcpSocket::do_read() {
     if (task.finished()) {
         read_task_queue_.pop_front();
         lck.unlock();
-        callback(Error::ok(), task.finished_size());
+        callback(Result::ok(), task.finished_size());
     } else if (ec && ec.value() != EAGAIN) {
         read_task_queue_.pop_front();
         lck.unlock();
-        callback(Error::system_error(ec.value()), task.finished_size());
+        callback(Result::system_error(ec.value()), task.finished_size());
     }
 }
 
@@ -244,10 +244,10 @@ void TcpSocket::do_write() {
     if (task.finished()) {
         write_task_queue_.pop_front();
         lck.unlock();
-        callback(Error::ok(), task.finished_size());
+        callback(Result::ok(), task.finished_size());
     } else if (ec && ec.value() != EAGAIN) {
         write_task_queue_.pop_front();
         lck.unlock();
-        callback(Error::system_error(ec.value()), task.finished_size());
+        callback(Result::system_error(ec.value()), task.finished_size());
     }
 }
