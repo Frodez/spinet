@@ -3,8 +3,6 @@
 #include "errno.h"
 #include "unistd.h"
 
-#include "fmt/format.h"
-
 #include "core/runtime.h"
 #include "util.h"
 
@@ -14,10 +12,11 @@ namespace spinet {
 
 class TcpAcceptor : public BaseAcceptor {
     public:
-    TcpAcceptor(int fd, Server::Settings* settings, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback) {
+    TcpAcceptor(int fd, Address address, Server::Settings* settings, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback)
+    : bind_address_ { address }
+    , settings_ { settings }
+    , accept_callback_ { accept_callback } {
         fd_ = fd;
-        settings_ = settings;
-        accept_callback_ = accept_callback;
     }
     ~TcpAcceptor() {
     }
@@ -44,6 +43,7 @@ class TcpAcceptor : public BaseAcceptor {
         }
     }
 
+    Address bind_address_;
     Server::Settings* settings_;
     std::function<void(std::shared_ptr<TcpSocket>)> accept_callback_;
 };
@@ -107,7 +107,7 @@ std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::fu
     for (std::size_t i = 0; i < workers_.size(); i++) {
         int listen_fd = ::socket(socket_address.sin_family, SOCK_STREAM, 0);
         if (listen_fd == -1) {
-            std::string err = fmt::format("socket cannot open, reason:{}", std::strerror(errno));
+            std::string err = std::string { "socket cannot open, reason:" } + std::strerror(errno);
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
                 ::close(listen_fds[i]);
             }
@@ -116,15 +116,15 @@ std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::fu
         set_reuse_port(listen_fd);
         listen_fds.push_back(listen_fd);
         if (::bind(listen_fd, reinterpret_cast<::sockaddr*>(&socket_address), sizeof(socket_address)) != 0) {
-            std::string err = fmt::format("socket cannot bind with address {}:{}, reason:{}",
-            from_sockaddr_in(socket_address), ntohs(socket_address.sin_port), std::strerror(errno));
+            std::string err = std::string { "socket cannot bind with address " } + from_sockaddr_in(socket_address) +
+            ":" + std::to_string(ntohs(socket_address.sin_port)) + ", reason:" + std::strerror(errno);
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
                 ::close(listen_fds[i]);
             }
             return err;
         }
         if (::listen(listen_fd, SOMAXCONN) == -1) {
-            std::string err = fmt::format("socket cannot be listened, reason:{}", std::strerror(errno));
+            std::string err = std::string { "socket cannot be listened, reason:" } + std::strerror(errno);
             for (std::size_t i = 0; i < listen_fds.size(); i++) {
                 ::close(listen_fds[i]);
             }
@@ -134,7 +134,7 @@ std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::fu
     }
     for (std::size_t i = 0; i < listen_fds.size(); i++) {
         auto& [runtime, thread] = workers_[i];
-        std::shared_ptr<TcpAcceptor> acceptor { new TcpAcceptor(listen_fds[i], &settings_, accept_callback) };
+        std::shared_ptr<TcpAcceptor> acceptor { new TcpAcceptor(listen_fds[i], address, &settings_, accept_callback) };
         runtime->register_handle(acceptor);
     }
     return {};

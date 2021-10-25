@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <string>
 #include <variant>
 
@@ -7,8 +8,6 @@
 #include "fcntl.h"
 #include "netinet/in.h"
 #include "sys/socket.h"
-
-#include "fmt/format.h"
 
 namespace spinet {
 
@@ -40,7 +39,7 @@ inline std::variant<::sockaddr_in, std::string> to_sockaddr_in(const char* ip, u
         address.sin_family = AF_INET6;
         return address;
     } else {
-        return fmt::format("parse failed, reason:{}", std::strerror(errno));
+        return std::string {"parse failed, reason:"} + std::strerror(errno);
     }
 }
 

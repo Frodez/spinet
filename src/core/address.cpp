@@ -1,7 +1,5 @@
 #include "netdb.h"
 
-#include "fmt/format.h"
-
 #include "spinet/core/address.h"
 #include "util.h"
 
@@ -29,7 +27,7 @@ std::variant<Address, std::string> Address::parse(const char* ip, uint16_t port)
         if (::inet_ntop(sockaddr.sin_family, &sockaddr.sin_addr, buf, len) != nullptr) {
             return Address { type, std::string { buf }, ntohs(sockaddr.sin_port) };
         } else {
-            return fmt::format("sockaddr is invalid, reason:{}", std::strerror(errno));
+            return std::string {"sockaddr is invalid, reason:"} + std::strerror(errno);
         }
     }
 }
@@ -82,7 +80,7 @@ uint16_t Address::port() {
 }
 
 std::string Address::to_string() {
-    return fmt::format("{}:{}", address_, port_);
+    return address_ + ":" + std::to_string(port_);
 }
 
 Address::Address(Type type, std::string address, uint16_t port)
