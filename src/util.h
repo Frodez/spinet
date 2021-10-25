@@ -39,7 +39,7 @@ inline std::variant<::sockaddr_in, std::string> to_sockaddr_in(const char* ip, u
         address.sin_family = AF_INET6;
         return address;
     } else {
-        return std::string {"parse failed, reason:"} + std::strerror(errno);
+        return std::string { "parse failed, reason:" } + std::strerror(errno);
     }
 }
 

@@ -27,7 +27,7 @@ std::variant<Address, std::string> Address::parse(const char* ip, uint16_t port)
         if (::inet_ntop(sockaddr.sin_family, &sockaddr.sin_addr, buf, len) != nullptr) {
             return Address { type, std::string { buf }, ntohs(sockaddr.sin_port) };
         } else {
-            return std::string {"sockaddr is invalid, reason:"} + std::strerror(errno);
+            return std::string { "sockaddr is invalid, reason:" } + std::strerror(errno);
         }
     }
 }

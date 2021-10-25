@@ -60,13 +60,13 @@ std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(Addres
     ::sockaddr_in socket_address = std::get<0>(res);
     int fd = ::socket(socket_address.sin_family, SOCK_STREAM, 0);
     if (fd == -1) {
-        return std::string {"socket cannot be created, reason:"} + std::strerror(errno);
+        return std::string { "socket cannot be created, reason:" } + std::strerror(errno);
     }
     if (settings_.reuse_port) {
         set_reuse_port(fd);
     }
     if (::connect(fd, reinterpret_cast<::sockaddr*>(&socket_address), sizeof(socket_address)) == -1) {
-        std::string err = std::string {"socket cannot be listened, reason:"} + std::strerror(errno);
+        std::string err = std::string { "socket cannot be listened, reason:" } + std::strerror(errno);
         ::close(fd);
         return err;
     }
