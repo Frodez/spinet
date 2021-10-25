@@ -23,9 +23,8 @@ inline void set_reuse_port(int fd) {
 }
 
 inline std::string from_sockaddr_in(const ::sockaddr_in& address) {
-    std::size_t len = address.sin_family == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN;
     char buf[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)] = { 0 };
-    ::inet_ntop(address.sin_family, &address.sin_addr, buf, len);
+    ::inet_ntop(address.sin_family, &address.sin_addr, buf, address.sin_family == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN);
     return { buf };
 }
 

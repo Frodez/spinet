@@ -99,5 +99,8 @@ if(NOT NO_EXAMPLES)
 
     add_executable(http_server_simple ${PROJECT_SOURCE_DIR}/example/http/simple/server.cpp)
     target_link_libraries(http_server_simple spinet_static Threads::Threads)
+
+    add_executable(address_resolve ${PROJECT_SOURCE_DIR}/example/address/resolve.cpp)
+    target_link_libraries(address_resolve spinet_static Threads::Threads)
 endif()
 #--------------------for the examples end--------------------
