@@ -65,7 +65,7 @@ Server::Settings Server::Settings::default_settings() {
 
 Server::Server()
 : running_ { false }
-, settings_ { Settings::default_settings() } {
+, settings_ {} {
 }
 
 Server::~Server() {
@@ -75,27 +75,36 @@ Server::~Server() {
 }
 
 std::optional<std::string> Server::with_settings(Settings settings) {
+    std::unique_lock<std::mutex> lck { mtx_ };
     if (running_) {
         return "server has been running";
+    }
+    if (settings_) {
+        return "settings has been set";
     }
     if (auto err = settings.validate()) {
         return err;
     }
     settings_ = settings;
-    std::unique_lock<std::mutex> lck { mtx_ };
-    for (std::size_t i = 0; i < settings_.workers; i++) {
+    for (std::size_t i = 0; i < settings_->workers; i++) {
         std::shared_ptr<Runtime> runtime { new Runtime() };
         workers_.push_back({ runtime, std::thread {} });
     }
     return {};
 }
 
+bool Server::has_settings() {
+    std::unique_lock<std::mutex> lck { mtx_ };
+    return settings_.has_value();
+}
+
 std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback) {
-    {
-        std::unique_lock<std::mutex> lck { mtx_ };
-        if (running_) {
-            return "server has been running";
-        }
+    std::unique_lock<std::mutex> lck { mtx_ };
+    if (running_) {
+        return "server has been running";
+    }
+    if (!settings_) {
+        return "settings has been not set";
     }
     auto res = to_sockaddr_in(address.address().c_str(), address.port());
     if (res.index() == 1) {
@@ -103,7 +112,6 @@ std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::fu
     }
     ::sockaddr_in socket_address = std::get<0>(res);
     std::vector<int> listen_fds {};
-    std::unique_lock<std::mutex> lck { mtx_ };
     for (std::size_t i = 0; i < workers_.size(); i++) {
         int listen_fd = ::socket(socket_address.sin_family, SOCK_STREAM, 0);
         if (listen_fd == -1) {
@@ -134,20 +142,23 @@ std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::fu
     }
     for (std::size_t i = 0; i < listen_fds.size(); i++) {
         auto& [runtime, thread] = workers_[i];
-        std::shared_ptr<TcpAcceptor> acceptor { new TcpAcceptor(listen_fds[i], address, &settings_, accept_callback) };
+        std::shared_ptr<TcpAcceptor> acceptor { new TcpAcceptor(listen_fds[i], address, &settings_.value(), accept_callback) };
         runtime->register_handle(acceptor);
     }
     return {};
 }
 
-void Server::run() {
+std::optional<std::string> Server::run() {
     bool expected = false;
     if (!running_.compare_exchange_weak(expected, true)) {
-        return;
+        return "server has been running";
     }
     {
         std::unique_lock<std::mutex> lck { mtx_ };
-        for (std::size_t i = 0; i < settings_.workers; i++) {
+        if (!settings_) {
+            return "settings has been not set";
+        }
+        for (std::size_t i = 0; i < settings_->workers; i++) {
             auto& [runtime, thread] = workers_[i];
             thread = std::thread { std::bind(&Runtime::run, runtime) };
         }
@@ -155,19 +166,16 @@ void Server::run() {
     for (auto& [runtime, thread] : workers_) {
         thread.join();
     }
-    {
-        std::unique_lock<std::mutex> lck { mtx_ };
-        workers_.clear();
-    }
     running_ = false;
+    return {};
 }
 
 void Server::stop() {
+    std::unique_lock<std::mutex> lck { mtx_ };
     if (!running_) {
         return;
     }
-    std::unique_lock<std::mutex> lck { mtx_ };
-    for (std::size_t i = 0; i < settings_.workers; i++) {
+    for (std::size_t i = 0; i < settings_->workers; i++) {
         workers_[i].first->stop();
     }
 }

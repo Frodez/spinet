@@ -54,7 +54,10 @@ int main(int argc, char* argv[]) {
         std::cout << error.value() << std::endl;
         return EXIT_FAILURE;
     }
-    client.run();
+    if (auto error = client.run()) {
+        std::cout << error.value() << std::endl;
+        return EXIT_FAILURE;
+    }
     uint64_t connectedCount { 0 };
     std::atomic<uint64_t> closedCount { 0 };
     for (std::size_t i = 0; i < (std::size_t)times; i++) {

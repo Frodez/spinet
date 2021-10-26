@@ -27,10 +27,11 @@ class Server {
     ~Server();
 
     std::optional<std::string> with_settings(Settings settings);
+    bool has_settings();
 
     std::optional<std::string> listen_tcp_endpoint(Address& address, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback);
 
-    void run();
+    std::optional<std::string> run();
     void stop();
     bool is_running();
 
@@ -46,7 +47,7 @@ class Server {
     std::atomic<bool> running_;
     std::vector<Worker> workers_;
 
-    Settings settings_;
+    std::optional<Settings> settings_;
 };
 
 }

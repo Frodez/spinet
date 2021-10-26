@@ -24,7 +24,7 @@ Client::Settings Client::Settings::default_settings() {
 Client::Client()
 : running_ { false }
 , choosen_index_ { 0 }
-, settings_ { Settings::default_settings() } {
+, settings_ {} {
 }
 
 Client::~Client() {
@@ -34,15 +34,18 @@ Client::~Client() {
 }
 
 std::optional<std::string> Client::with_settings(Settings settings) {
+    std::unique_lock<std::mutex> lck { mtx_ };
     if (running_) {
         return "client has been running";
+    }
+    if (settings_) {
+        return "settings has been set";
     }
     if (auto err = settings.validate()) {
         return err;
     }
     settings_ = settings;
-    std::unique_lock<std::mutex> lck { mtx_ };
-    for (std::size_t i = 0; i < settings_.workers; i++) {
+    for (std::size_t i = 0; i < settings_->workers; i++) {
         std::shared_ptr<Runtime> runtime { new Runtime() };
         workers_.push_back({ runtime, std::thread {} });
     }
@@ -50,8 +53,12 @@ std::optional<std::string> Client::with_settings(Settings settings) {
 }
 
 std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(Address& address) {
+    std::unique_lock<std::mutex> lck { mtx_ };
     if (!running_) {
         return "client is not running";
+    }
+    if (!settings_) {
+        return "settings has been not set";
     }
     auto res = to_sockaddr_in(address.address().c_str(), address.port());
     if (res.index() == 1) {
@@ -62,7 +69,7 @@ std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(Addres
     if (fd == -1) {
         return std::string { "socket cannot be created, reason:" } + std::strerror(errno);
     }
-    if (settings_.reuse_port) {
+    if (settings_->reuse_port) {
         set_reuse_port(fd);
     }
     if (::connect(fd, reinterpret_cast<::sockaddr*>(&socket_address), sizeof(socket_address)) == -1) {
@@ -71,23 +78,26 @@ std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(Addres
         return err;
     }
     set_nonblock(fd);
-    std::unique_lock<std::mutex> lck { mtx_ };
     std::shared_ptr<TcpSocket> socket { new TcpSocket(
     fd, std::get<0>(Address::parse(from_sockaddr_in(socket_address), ntohs(socket_address.sin_port)))) };
     select_runtime()->register_handle(socket);
     return socket;
 }
 
-void Client::run() {
+std::optional<std::string> Client::run() {
     std::unique_lock<std::mutex> lck { mtx_ };
     if (running_) {
-        return;
+        return "client has been running";
     }
-    for (std::size_t i = 0; i < settings_.workers; i++) {
+    if (!settings_) {
+        return "settings has been not set";
+    }
+    for (std::size_t i = 0; i < settings_->workers; i++) {
         auto& [runtime, thread] = workers_[i];
         thread = std::thread { std::bind(&Runtime::run, runtime) };
     }
     running_ = true;
+    return {};
 }
 
 void Client::stop() {
@@ -95,7 +105,7 @@ void Client::stop() {
     if (!running_) {
         return;
     }
-    for (std::size_t i = 0; i < settings_.workers; i++) {
+    for (std::size_t i = 0; i < settings_->workers; i++) {
         workers_[i].first->stop();
     }
     for (auto& [runtime, thread] : workers_) {

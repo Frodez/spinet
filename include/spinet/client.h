@@ -28,7 +28,7 @@ class Client {
     std::optional<std::string> with_settings(Settings settings);
     std::variant<std::shared_ptr<TcpSocket>, std::string> tcp_connect(Address& address);
 
-    void run();
+    std::optional<std::string> run();
     void stop();
     bool is_running();
 
@@ -48,7 +48,7 @@ class Client {
 
     std::atomic<uint64_t> choosen_index_;
 
-    Settings settings_;
+    std::optional<Settings> settings_;
 };
 
 }

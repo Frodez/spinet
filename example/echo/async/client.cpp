@@ -75,7 +75,10 @@ int main(int argc, char* argv[]) {
         std::cout << error.value() << std::endl;
         return EXIT_FAILURE;
     }
-    client.run();
+    if (auto error = client.run()) {
+        std::cout << error.value() << std::endl;
+        return EXIT_FAILURE;
+    }
     for (std::size_t i = 0; i < (std::size_t)clients; i++) {
         auto res = client.tcp_connect(std::get<0>(address));
         if (res.index() == 1) {
