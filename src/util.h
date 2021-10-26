@@ -23,13 +23,13 @@ inline void set_reuse_port(int fd) {
 }
 
 inline std::string from_sockaddr_in(const ::sockaddr_in& address) {
-    char buf[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)] = { 0 };
+    char buf[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)] { 0 };
     ::inet_ntop(address.sin_family, &address.sin_addr, buf, address.sin_family == AF_INET ? INET_ADDRSTRLEN : INET6_ADDRSTRLEN);
     return { buf };
 }
 
 inline std::variant<::sockaddr_in, std::string> to_sockaddr_in(const char* ip, uint16_t port) {
-    ::sockaddr_in address { 0 };
+    ::sockaddr_in address {};
     address.sin_port = htons(port);
     if (::inet_pton(AF_INET, ip, &address.sin_addr) == 1) {
         address.sin_family = AF_INET;

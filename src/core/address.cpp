@@ -37,7 +37,7 @@ std::variant<Address, std::string> Address::parse(const std::string& ip, uint16_
 }
 
 std::variant<std::vector<Address>, std::string> Address::resolve(const char* domain, uint16_t port) {
-    ::addrinfo hints { 0 };
+    ::addrinfo hints {};
     hints.ai_family = PF_UNSPEC;
     ::addrinfo* res = nullptr;
     {
