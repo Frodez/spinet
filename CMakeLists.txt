@@ -25,9 +25,9 @@ option(ENABLE_ASAN "Enable the address sanitizer" OFF)
 #--------------------for the compiler start--------------------
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-terminate")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-terminate")
-set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wall -Wno-terminate")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-terminate")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-terminate")
+set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wall -Wextra -Wno-terminate")
 
 if(ENABLE_ASAN) 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
@@ -89,18 +89,26 @@ ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/release/lib/
 #--------------------for the examples start--------------------
 if(NOT NO_EXAMPLES)
     add_executable(cmd_echo_client ${PROJECT_SOURCE_DIR}/example/echo/cmd_client.cpp)
+    target_compile_options(cmd_echo_client PUBLIC -Wno-unused-parameter)
 
     add_executable(async_echo_server ${PROJECT_SOURCE_DIR}/example/echo/async/server.cpp)
+    target_compile_options(async_echo_server PUBLIC -Wno-unused-parameter)
     target_link_libraries(async_echo_server spinet_static Threads::Threads)
+
     add_executable(async_echo_client ${PROJECT_SOURCE_DIR}/example/echo/async/client.cpp)
+    target_compile_options(async_echo_client PUBLIC -Wno-unused-parameter)
     target_link_libraries(async_echo_client spinet_static Threads::Threads)
+
     add_executable(async_echo_client2 ${PROJECT_SOURCE_DIR}/example/echo/async/client2.cpp)
+    target_compile_options(async_echo_client2 PUBLIC -Wno-unused-parameter)
     target_link_libraries(async_echo_client2 spinet_static Threads::Threads)
 
     add_executable(http_server_simple ${PROJECT_SOURCE_DIR}/example/http/simple/server.cpp)
+    target_compile_options(http_server_simple PUBLIC -Wno-unused-parameter)
     target_link_libraries(http_server_simple spinet_static Threads::Threads)
 
     add_executable(address_resolve ${PROJECT_SOURCE_DIR}/example/address/resolve.cpp)
+    target_compile_options(address_resolve PUBLIC -Wno-unused-parameter)
     target_link_libraries(address_resolve spinet_static Threads::Threads)
 endif()
 #--------------------for the examples end--------------------
