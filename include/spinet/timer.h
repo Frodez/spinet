@@ -14,7 +14,7 @@ class Timer {
     public:
     using Duration = std::chrono::milliseconds;
     using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
-    using Callback = std::function<void()>;
+    using Callback = std::function<void(TimePoint, TimePoint)>;
 
     Timer(Duration precision = std::chrono::milliseconds { 1 });
     ~Timer();
@@ -42,7 +42,7 @@ class Timer {
 
     std::mutex waiter_mtx_;
     std::condition_variable waiter_cv_;
-    std::multimap<TimePoint, std::function<void()>> waiters_;
+    std::multimap<TimePoint, Callback> waiters_;
 };
 
 }

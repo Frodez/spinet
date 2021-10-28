@@ -1,3 +1,5 @@
+#include <list>
+
 #include "spinet/timer.h"
 
 using namespace spinet;
@@ -43,17 +45,18 @@ bool Timer::is_running() {
 void Timer::exec() {
     stopped_ = false;
     while (!stopped_) {
-        TimePoint before_time_point {};
+        TimePoint time_point {};
         {
             std::unique_lock<std::mutex> lck { waiter_mtx_ };
-            before_time_point = std::chrono::steady_clock::now();
+            time_point = std::chrono::steady_clock::now();
             auto lower = waiters_.begin();
-            auto upper = waiters_.upper_bound(before_time_point);
-            std::vector<std::pair<TimePoint, Callback>> callbacks { lower, upper };
+            auto upper = waiters_.upper_bound(time_point);
+            std::list<std::pair<TimePoint, Callback>> callbacks { lower, upper };
             waiters_.erase(lower, upper);
             lck.unlock();
-            for (auto& [time_point, callback] : callbacks) {
-                callback();
+            for(auto iter = callbacks.begin(); iter != callbacks.end();) {
+                iter->second(iter->first, time_point);
+                iter = callbacks.erase(iter);
             }
         }
         {
@@ -65,7 +68,7 @@ void Timer::exec() {
                 }
             }
         }
-        Duration duration = std::chrono::duration_cast<Duration>(std::chrono::steady_clock::now() - before_time_point);
+        Duration duration = std::chrono::duration_cast<Duration>(std::chrono::steady_clock::now() - time_point);
         if (precision_ > duration) {
             std::this_thread::sleep_for(precision_ - duration);
         }
