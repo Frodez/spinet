@@ -32,8 +32,8 @@ void Timer::stop() {
         while (running_) {
             waiter_cv_.notify_all();
         }
+        timer_thread_.join();
     }
-    timer_thread_.join();
 }
 
 bool Timer::is_running() {
