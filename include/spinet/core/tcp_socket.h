@@ -23,10 +23,10 @@ class TcpSocket : public BaseSocket {
     TcpSocket(int fd, Address peer);
     ~TcpSocket();
 
-    void async_read(uint8_t* buf, std::size_t size, ReadCallback callback);
-    void async_read_some(uint8_t* buf, std::size_t size, ReadCallback callback);
-    void async_write(uint8_t* buf, std::size_t size, WriteCallback callback);
-    void async_write_some(uint8_t* buf, std::size_t size, WriteCallback callback);
+    bool async_read(uint8_t* buf, std::size_t size, ReadCallback callback);
+    bool async_read_some(uint8_t* buf, std::size_t size, ReadCallback callback);
+    bool async_write(uint8_t* buf, std::size_t size, WriteCallback callback);
+    bool async_write_some(uint8_t* buf, std::size_t size, WriteCallback callback);
 
     void cancel();
     bool is_closed();
