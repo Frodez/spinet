@@ -33,7 +33,7 @@ std::optional<std::string> Runtime::run() {
     std::optional<std::string> err {};
     ::epoll_event events[EPOLL_WAIT_SIZE];
     while (!stopped_) {
-        int event_size = ::epoll_wait(epoll_fd_, events, EPOLL_WAIT_SIZE, 0);
+        int event_size = ::epoll_wait(epoll_fd_, events, EPOLL_WAIT_SIZE, 10);
         if (event_size == -1) {
             err.emplace(std::strerror(errno));
             stopped_ = true;
