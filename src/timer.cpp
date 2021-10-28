@@ -29,6 +29,9 @@ void Timer::run() {
 void Timer::stop() {
     if (running_) {
         stopped_ = true;
+        while (running_) {
+            waiter_cv_.notify_all();
+        }
     }
     timer_thread_.join();
 }
@@ -40,7 +43,7 @@ bool Timer::is_running() {
 void Timer::exec() {
     stopped_ = false;
     while (!stopped_) {
-        TimePoint before_time_point;
+        TimePoint before_time_point {};
         {
             std::unique_lock<std::mutex> lck { waiter_mtx_ };
             before_time_point = std::chrono::steady_clock::now();
@@ -57,6 +60,9 @@ void Timer::exec() {
             std::unique_lock<std::mutex> lck { waiter_mtx_ };
             if (waiters_.empty()) {
                 waiter_cv_.wait(lck);
+                if (stopped_) {
+                    break;
+                }
             }
         }
         Duration duration = std::chrono::duration_cast<Duration>(std::chrono::steady_clock::now() - before_time_point);
