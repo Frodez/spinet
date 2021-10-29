@@ -4,7 +4,7 @@
 
 using namespace spinet;
 
-constexpr Timer::Duration MINIMUM_PRECISION = std::chrono::milliseconds { 1 };
+constexpr Timer::Duration MINIMUM_PRECISION = Timer::Duration { 1 };
 
 Timer::Timer(Duration precision)
 : running_ { false }
@@ -54,7 +54,7 @@ void Timer::exec() {
             std::list<std::pair<TimePoint, Callback>> callbacks { lower, upper };
             waiters_.erase(lower, upper);
             lck.unlock();
-            for(auto iter = callbacks.begin(); iter != callbacks.end();) {
+            for (auto iter = callbacks.begin(); iter != callbacks.end();) {
                 iter->second(iter->first, time_point);
                 iter = callbacks.erase(iter);
             }
@@ -68,7 +68,7 @@ void Timer::exec() {
                 }
             }
         }
-        Duration duration = std::chrono::duration_cast<Duration>(std::chrono::steady_clock::now() - time_point);
+        auto duration = std::chrono::steady_clock::now() - time_point;
         if (precision_ > duration) {
             std::this_thread::sleep_for(precision_ - duration);
         }
@@ -83,11 +83,13 @@ void Timer::async_wait_for(Duration duration, Callback callback) {
 }
 
 void Timer::async_wait_until(TimePoint time_point, Callback callback) {
+    auto time_since_epoch = time_point.time_since_epoch();
+    TimePoint floored_time_point { time_since_epoch - (time_since_epoch % precision_) };
     std::unique_lock<std::mutex> lck { waiter_mtx_ };
     if (waiters_.empty()) {
-        waiters_.insert({ time_point, callback });
+        waiters_.insert({ floored_time_point, callback });
         waiter_cv_.notify_one();
     } else {
-        waiters_.insert({ time_point, callback });
+        waiters_.insert({ floored_time_point, callback });
     }
 }

@@ -34,7 +34,7 @@ class Timer {
 
     void exec();
 
-    std::chrono::milliseconds precision_;
+    Timer::Duration precision_;
 
     std::atomic<bool> running_;
     std::atomic<bool> stopped_;
