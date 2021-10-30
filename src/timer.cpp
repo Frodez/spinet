@@ -12,12 +12,13 @@ Timer::Timer(Duration precision)
     if (precision < MINIMUM_PRECISION) {
         precision_ = MINIMUM_PRECISION;
     } else {
-        precision_ = std::chrono::duration_cast<Duration>(precision);
+        precision_ = std::chrono::duration_cast<Duration>(precision - (precision_ % MINIMUM_PRECISION));
     }
 }
 
 Timer::~Timer() {
     stop();
+    timer_thread_.join();
 }
 
 void Timer::run() {
@@ -25,6 +26,7 @@ void Timer::run() {
     if (!running_.compare_exchange_weak(expected, true)) {
         return;
     }
+    timer_thread_.join();
     timer_thread_ = std::thread { &Timer::exec, this };
 }
 
@@ -34,7 +36,6 @@ void Timer::stop() {
         while (running_) {
             waiter_cv_.notify_all();
         }
-        timer_thread_.join();
     }
 }
 
@@ -51,12 +52,11 @@ void Timer::exec() {
             time_point = std::chrono::steady_clock::now();
             auto lower = waiters_.begin();
             auto upper = waiters_.upper_bound(time_point);
-            std::list<std::pair<TimePoint, Callback>> callbacks { lower, upper };
+            std::vector<std::pair<TimePoint, Callback>> callbacks { lower, upper };
             waiters_.erase(lower, upper);
             lck.unlock();
-            for (auto iter = callbacks.begin(); iter != callbacks.end();) {
-                iter->second(iter->first, time_point);
-                iter = callbacks.erase(iter);
+            for (auto& [prev_time_point, callback] : callbacks) {
+                callback(prev_time_point, time_point);
             }
         }
         {
