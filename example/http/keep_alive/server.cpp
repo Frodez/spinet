@@ -9,21 +9,30 @@
 
 #include "spinet.h"
 
-static const char RESPONSE[] = "HTTP/1.0 200 OK\r\nConnection: close\r\nContent-Type: text/html; "
-                               "charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
+static const char A[] = "a";
+
+static const char RESPONSE_CONNECTION_CLOSED[] =
+"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
+
+static const char RESPONSE_KEEP_ALIVE[] =
+"HTTP/1.1 200 OK\r\nConnection: Keep-Alive\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
 
 class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     public:
-    HttpConnection(std::shared_ptr<spinet::TcpSocket> socket)
+    HttpConnection(std::shared_ptr<spinet::TcpSocket> socket, spinet::Timer& timer)
     : socket_ { socket }
+    , timer_ { timer }
     , header_ { new uint8_t[256] }
     , header_cap_ { 256 }
     , header_len_ { 0 }
-    , parser_ {} {};
+    , parser_ {}
+    , request_ {}
+    , last_receive_time_point_ { std::chrono::steady_clock::now() } {};
     ~HttpConnection() {
         socket_->close();
     }
     void start() {
+        check_persistent_connection();
         receive_request_header();
     };
     bool is_closed() {
@@ -34,6 +43,15 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     }
 
     private:
+    void check_persistent_connection() {
+        if (spinet::Timer::Duration { 2000 } <= std::chrono::steady_clock::now() - last_receive_time_point_) {
+            socket_->close();
+            return;
+        }
+        auto self = shared_from_this();
+        timer_.async_wait_for(spinet::Timer::Duration { 100 },
+        [this, self](spinet::Timer::TimePoint prev, spinet::Timer::TimePoint now) { check_persistent_connection(); });
+    }
     void receive_request_header() {
         auto buf = header_.get() + header_len_;
         auto len = header_cap_ - header_len_;
@@ -43,17 +61,18 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
                 socket_->close();
                 return;
             }
+            last_receive_time_point_ = std::chrono::steady_clock::now();
             set_header_length(len);
-            if (!find_header_end()) {
+            auto header_index = index_of_header_end();
+            if (header_index == header_len_) {
                 resize_header_buffer();
                 receive_request_header();
                 return;
             }
-            httpparser::Request request {};
             char* begin = (char*)header_.get();
-            char* end = begin + header_len_;
-            if (parser_.parse(request, begin, end) == httpparser::HttpRequestParser::ParsingCompleted) {
-                for (auto& item : request.headers) {
+            char* end = (char*)header_.get() + header_len_;
+            if (parser_.parse(request_, begin, end) == httpparser::HttpRequestParser::ParsingCompleted) {
+                for (auto& item : request_.headers) {
                     if (item.name == "Content-Length") {
                         // receive body
                         char* ptr = nullptr;
@@ -68,6 +87,7 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
                                 socket_->close();
                                 return;
                             }
+                            last_receive_time_point_ = std::chrono::steady_clock::now();
                             send_response();
                         });
                         return;
@@ -79,20 +99,31 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     };
     void send_response() {
         auto self = shared_from_this();
-        socket_->async_write((uint8_t*)RESPONSE, sizeof(RESPONSE), [this, self](spinet::Result res, std::size_t len) {
+        socket_->async_write(request_.keepAlive ? (uint8_t*)RESPONSE_KEEP_ALIVE : (uint8_t*)RESPONSE_CONNECTION_CLOSED,
+        request_.keepAlive ? sizeof(RESPONSE_KEEP_ALIVE) : sizeof(RESPONSE_CONNECTION_CLOSED),
+        [this, self](spinet::Result res, std::size_t len) {
             if (res) {
+                socket_->close();
+                return;
             }
-            socket_->close();
+            if (!request_.keepAlive) {
+                socket_->close();
+            } else {
+                header_ = std::shared_ptr<uint8_t[]> { new uint8_t[256] };
+                header_cap_ = 256;
+                header_len_ = 0;
+                receive_request_header();
+            }
         });
     };
     void set_header_length(std::size_t len) {
         header_len_ = header_len_ + len;
     }
-    bool find_header_end() {
+    std::size_t index_of_header_end() {
         uint8_t header_end[] = { '\r', '\n', '\r', '\n' };
         uint8_t* begin = header_.get();
-        uint8_t* end = begin + header_len_;
-        return std::search(header_end, header_end + sizeof(header_end), begin, end) != end;
+        uint8_t* index_ptr = std::search(header_end, header_end + sizeof(header_end), begin, begin + header_len_);
+        return index_ptr - begin;
     };
     void resize_header_buffer() {
         if (header_len_ != header_cap_) {
@@ -104,12 +135,15 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
         header_cap_ = header_cap_ * 2;
     }
     std::shared_ptr<spinet::TcpSocket> socket_;
+    spinet::Timer& timer_;
     std::shared_ptr<uint8_t[]> header_;
     std::size_t header_cap_;
     std::size_t header_len_;
     std::shared_ptr<uint8_t[]> body_;
     std::size_t body_len_;
     httpparser::HttpRequestParser parser_;
+    httpparser::Request request_;
+    std::chrono::steady_clock::time_point last_receive_time_point_;
 };
 
 int main(int argc, char* argv[]) {
@@ -145,8 +179,10 @@ int main(int argc, char* argv[]) {
         std::cout << error.value() << std::endl;
         return EXIT_FAILURE;
     }
-    error = server.listen_tcp_endpoint(std::get<0>(address), [](std::shared_ptr<spinet::TcpSocket> socket) {
-        auto connection = std::shared_ptr<HttpConnection>(new HttpConnection(socket));
+    spinet::Timer timer {};
+    timer.run();
+    error = server.listen_tcp_endpoint(std::get<0>(address), [&timer](std::shared_ptr<spinet::TcpSocket> socket) {
+        auto connection = std::shared_ptr<HttpConnection>(new HttpConnection(socket, timer));
         connection->start();
     });
     if (error) {
@@ -155,6 +191,7 @@ int main(int argc, char* argv[]) {
     }
     std::thread t { [&server]() { server.run(); } };
     std::this_thread::sleep_for(std::chrono::seconds { 60 });
+    timer.stop();
     server.stop();
     t.join();
     return EXIT_SUCCESS;

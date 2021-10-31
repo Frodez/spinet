@@ -52,7 +52,6 @@ find_package(Threads REQUIRED)
 
 
 #--------------------for the macro definitions start--------------------
-add_definitions(-DFMT_HEADER_ONLY)
 #--------------------for the macro definitions end--------------------
 
 
@@ -104,8 +103,14 @@ if(NOT NO_EXAMPLES)
     target_link_libraries(async_echo_client2 spinet_static Threads::Threads)
 
     add_executable(http_server_simple ${PROJECT_SOURCE_DIR}/example/http/simple/server.cpp)
+    target_include_directories(http_server_simple PUBLIC ${PROJECT_SOURCE_DIR}/example/http/include)
     target_compile_options(http_server_simple PUBLIC -Wno-unused-parameter)
     target_link_libraries(http_server_simple spinet_static Threads::Threads)
+
+    add_executable(http_server_keep_alive ${PROJECT_SOURCE_DIR}/example/http/keep_alive/server.cpp)
+    target_include_directories(http_server_keep_alive PUBLIC ${PROJECT_SOURCE_DIR}/example/http/include)
+    target_compile_options(http_server_keep_alive PUBLIC -Wno-unused-parameter)
+    target_link_libraries(http_server_keep_alive spinet_static Threads::Threads)
 
     add_executable(address_resolve ${PROJECT_SOURCE_DIR}/example/address/resolve.cpp)
     target_compile_options(address_resolve PUBLIC -Wno-unused-parameter)

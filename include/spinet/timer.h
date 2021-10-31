@@ -38,6 +38,7 @@ class Timer {
 
     std::atomic<bool> running_;
     std::atomic<bool> stopped_;
+    std::mutex thread_mtx_;
     std::thread timer_thread_;
 
     std::mutex waiter_mtx_;

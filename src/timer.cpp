@@ -18,7 +18,6 @@ Timer::Timer(Duration precision)
 
 Timer::~Timer() {
     stop();
-    timer_thread_.join();
 }
 
 void Timer::run() {
@@ -26,7 +25,7 @@ void Timer::run() {
     if (!running_.compare_exchange_weak(expected, true)) {
         return;
     }
-    timer_thread_.join();
+    std::unique_lock<std::mutex> lck { thread_mtx_ };
     timer_thread_ = std::thread { &Timer::exec, this };
 }
 
@@ -36,6 +35,8 @@ void Timer::stop() {
         while (running_) {
             waiter_cv_.notify_all();
         }
+        std::unique_lock<std::mutex> lck { thread_mtx_ };
+        timer_thread_.join();
     }
 }
 
