@@ -22,3 +22,4 @@ The default installation path is `spinet/release`.
 # **Third-party dependencies**
 
 1. [robin-map v0.6.3](https://github.com/Tessil/robin-map/releases/tag/v0.6.3)  
+2. [httpparser](https://github.com/nekipelov/httpparser)(*dependency for example, not for library*)  
