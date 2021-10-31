@@ -1,5 +1,3 @@
-#include <list>
-
 #include "spinet/timer.h"
 
 using namespace spinet;

@@ -16,7 +16,7 @@ class Timer {
     using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
     using Callback = std::function<void(TimePoint, TimePoint)>;
 
-    Timer(Duration precision = std::chrono::milliseconds { 1 });
+    Timer(Duration precision = Duration { 1 });
     ~Timer();
 
     void run();
