@@ -11,11 +11,11 @@
 
 static const char A[] = "a";
 
-static const char RESPONSE_CONNECTION_CLOSED[] =
-"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
+static const char RESPONSE_CONNECTION_CLOSED[] = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html; "
+                                                 "charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
 
-static const char RESPONSE_KEEP_ALIVE[] =
-"HTTP/1.1 200 OK\r\nConnection: Keep-Alive\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
+static const char RESPONSE_KEEP_ALIVE[] = "HTTP/1.1 200 OK\r\nConnection: Keep-Alive\r\nContent-Type: text/html; "
+                                          "charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
 
 class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     public:
@@ -26,12 +26,12 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     , header_cap_ { 256 }
     , header_len_ { 0 }
     , parser_ {}
-    , request_ {}
-    , last_receive_time_point_ { std::chrono::steady_clock::now() } {};
+    , request_ {} {};
     ~HttpConnection() {
         socket_->close();
     }
     void start() {
+        last_receive_time_point_ = std::chrono::steady_clock::now();
         check_persistent_connection();
         receive_request_header();
     };
