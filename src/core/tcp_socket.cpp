@@ -123,11 +123,11 @@ TcpSocket::~TcpSocket() {
 }
 
 bool TcpSocket::async_read(uint8_t* buf, std::size_t size, ReadCallback callback) {
-    TcpReadTask task { buf, size, TaskStrategy::UNTIL_FINISHED };
     std::unique_lock<std::mutex> lck { read_mtx_ };
     if (closed_) {
         return false;
     }
+    TcpReadTask task { buf, size, TaskStrategy::UNTIL_FINISHED };
     if (read_task_queue_.empty()) {
         task.exec(fd_);
     }
@@ -136,11 +136,11 @@ bool TcpSocket::async_read(uint8_t* buf, std::size_t size, ReadCallback callback
 }
 
 bool TcpSocket::async_read_some(uint8_t* buf, std::size_t size, ReadCallback callback) {
-    TcpReadTask task { buf, size, TaskStrategy::TRY };
     std::unique_lock<std::mutex> lck { read_mtx_ };
     if (closed_) {
         return false;
     }
+    TcpReadTask task { buf, size, TaskStrategy::TRY };
     if (read_task_queue_.empty()) {
         task.exec(fd_);
     }
@@ -149,11 +149,11 @@ bool TcpSocket::async_read_some(uint8_t* buf, std::size_t size, ReadCallback cal
 }
 
 bool TcpSocket::async_write(uint8_t* buf, std::size_t size, WriteCallback callback) {
-    TcpWriteTask task { buf, size, TaskStrategy::UNTIL_FINISHED };
     std::unique_lock<std::mutex> lck { write_mtx_ };
     if (closed_) {
         return false;
     }
+    TcpWriteTask task { buf, size, TaskStrategy::UNTIL_FINISHED };
     if (write_task_queue_.empty()) {
         task.exec(fd_);
     }
@@ -162,11 +162,11 @@ bool TcpSocket::async_write(uint8_t* buf, std::size_t size, WriteCallback callba
 }
 
 bool TcpSocket::async_write_some(uint8_t* buf, std::size_t size, WriteCallback callback) {
-    TcpWriteTask task { buf, size, TaskStrategy::TRY };
     std::unique_lock<std::mutex> lck { write_mtx_ };
     if (closed_) {
         return false;
     }
+    TcpWriteTask task { buf, size, TaskStrategy::TRY };
     if (write_task_queue_.empty()) {
         task.exec(fd_);
     }
