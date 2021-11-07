@@ -29,66 +29,16 @@ std::optional<std::string> Runtime::run() {
     if (!ok) {
         return "the server is running";
     }
-    stopped_ = false;
-    std::optional<std::string> err {};
-    ::epoll_event events[EPOLL_WAIT_SIZE];
-    while (!stopped_) {
-        int event_size = ::epoll_wait(epoll_fd_, events, EPOLL_WAIT_SIZE, 1);
-        if (event_size == -1) {
-            err.emplace(std::strerror(errno));
-            stopped_ = true;
-            break;
-        }
-        for (int i = 0; i < event_size; i++) {
-            ::epoll_event& ev = events[i];
-            Handle* handle = static_cast<Handle*>(ev.data.ptr);
-            if (BaseAcceptor* acceptor = dynamic_cast<BaseAcceptor*>(handle)) {
-                if (ev.events & EPOLLIN) {
-                    acceptor->do_accept();
-                } else {
-                    acceptor->close();
-                }
-                continue;
-            }
-            if (BaseSocket* socket = dynamic_cast<BaseSocket*>(handle)) {
-                if (ev.events & (EPOLLIN | EPOLLPRI)) {
-                    socket->do_read();
-                } else if (ev.events & EPOLLOUT) {
-                    socket->do_write();
-                } else {
-                    socket->close();
-                }
-                continue;
-            }
-        }
-        {
-            Set<BaseSocket*> all_sockets_copy {};
-            {
-                std::unique_lock<std::mutex> lck { handles_mtx_ };
-                all_sockets_copy = all_sockets_;
-            }
-            for (auto socket : all_sockets_copy) {
-                socket->do_read();
-                socket->do_write();
-            }
-        }
-        {
-            std::unique_lock<std::mutex> lck { handles_mtx_ };
-            for (auto& removable_handle : removable_handles_) {
-                removable_handle->close();
-            }
-            removable_handles_.clear();
-        }
-    }
-    // clear the resources left
-    release_all_handles();
-    running_ = false;
-    return err;
+    std::unique_lock<std::mutex> lck { thread_mtx_ };
+    runtime_thread_ = std::thread { &Runtime::exec, this };
+    return {};
 }
 
 void Runtime::stop() {
     if (running_) {
         stopped_ = true;
+        std::unique_lock<std::mutex> lck { thread_mtx_ };
+        runtime_thread_.join();
     }
 }
 
@@ -160,6 +110,57 @@ void Runtime::deregister_handle(Handle* handle) {
     ::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, handle_fd, &ev);
     removable_handles_.push_back(find->second);
     all_handles_.erase(find);
+}
+
+void Runtime::exec() {
+    stopped_ = false;
+    ::epoll_event events[EPOLL_WAIT_SIZE];
+    while (!stopped_) {
+        int event_size = ::epoll_wait(epoll_fd_, events, EPOLL_WAIT_SIZE, 1);
+        for (int i = 0; i < event_size; i++) {
+            ::epoll_event& ev = events[i];
+            Handle* handle = static_cast<Handle*>(ev.data.ptr);
+            if (BaseAcceptor* acceptor = dynamic_cast<BaseAcceptor*>(handle)) {
+                if (ev.events & EPOLLIN) {
+                    acceptor->do_accept();
+                } else {
+                    acceptor->close();
+                }
+                continue;
+            }
+            if (BaseSocket* socket = dynamic_cast<BaseSocket*>(handle)) {
+                if (ev.events & (EPOLLIN | EPOLLPRI)) {
+                    socket->do_read();
+                } else if (ev.events & EPOLLOUT) {
+                    socket->do_write();
+                } else {
+                    socket->close();
+                }
+                continue;
+            }
+        }
+        {
+            Set<BaseSocket*> all_sockets_copy {};
+            {
+                std::unique_lock<std::mutex> lck { handles_mtx_ };
+                all_sockets_copy = all_sockets_;
+            }
+            for (auto socket : all_sockets_copy) {
+                socket->do_read();
+                socket->do_write();
+            }
+        }
+        {
+            std::unique_lock<std::mutex> lck { handles_mtx_ };
+            for (auto& removable_handle : removable_handles_) {
+                removable_handle->close();
+            }
+            removable_handles_.clear();
+        }
+    }
+    // clear the resources left
+    release_all_handles();
+    running_ = false;
 }
 
 void Runtime::release_all_handles() {

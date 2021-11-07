@@ -36,7 +36,7 @@ class Server {
     bool is_running();
 
     private:
-    using Worker = std::pair<std::shared_ptr<Runtime>, std::thread>;
+    using Worker = std::shared_ptr<Runtime>;
 
     Server(Server&& other) = delete;
     Server& operator=(Server&& other) = delete;

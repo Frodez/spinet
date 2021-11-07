@@ -87,8 +87,7 @@ std::optional<std::string> Server::with_settings(Settings settings) {
     }
     settings_ = settings;
     for (std::size_t i = 0; i < settings_->workers; i++) {
-        std::shared_ptr<Runtime> runtime { new Runtime() };
-        workers_.push_back({ runtime, std::thread {} });
+        workers_.push_back(std::shared_ptr<Runtime> { new Runtime() });
     }
     return {};
 }
@@ -141,9 +140,8 @@ std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::fu
         set_nonblock(listen_fd);
     }
     for (std::size_t i = 0; i < listen_fds.size(); i++) {
-        auto& [runtime, thread] = workers_[i];
         std::shared_ptr<TcpAcceptor> acceptor { new TcpAcceptor(listen_fds[i], address, &settings_.value(), accept_callback) };
-        runtime->register_handle(acceptor);
+        workers_[i]->register_handle(acceptor);
     }
     return {};
 }
@@ -153,20 +151,15 @@ std::optional<std::string> Server::run() {
     if (!running_.compare_exchange_weak(expected, true)) {
         return "server has been running";
     }
-    {
-        std::unique_lock<std::mutex> lck { mtx_ };
-        if (!settings_) {
-            return "settings has been not set";
-        }
-        for (std::size_t i = 0; i < settings_->workers; i++) {
-            auto& [runtime, thread] = workers_[i];
-            thread = std::thread { std::bind(&Runtime::run, runtime) };
+    std::unique_lock<std::mutex> lck { mtx_ };
+    if (!settings_) {
+        return "settings has been not set";
+    }
+    for (auto& worker : workers_) {
+        if (auto err = worker->run()) {
+            return err;
         }
     }
-    for (auto& [runtime, thread] : workers_) {
-        thread.join();
-    }
-    running_ = false;
     return {};
 }
 
@@ -175,9 +168,10 @@ void Server::stop() {
     if (!running_) {
         return;
     }
-    for (std::size_t i = 0; i < settings_->workers; i++) {
-        workers_[i].first->stop();
+    for (auto& worker : workers_) {
+        worker->stop();
     }
+    running_ = false;
 }
 
 bool Server::is_running() {

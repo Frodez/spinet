@@ -6,8 +6,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
+#include <thread>
 #include <vector>
 
 #include "tsl/robin_map.h"
@@ -32,10 +31,14 @@ class Runtime : public std::enable_shared_from_this<Runtime> {
     template <typename K, typename V> using Map = tsl::robin_map<K, V>;
     template <typename E> using Set = tsl::robin_set<E>;
 
+    void exec();
+
     void release_all_handles();
 
     std::atomic<bool> running_;
     std::atomic<bool> stopped_;
+    std::mutex thread_mtx_;
+    std::thread runtime_thread_;
 
     int epoll_fd_;
 

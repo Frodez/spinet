@@ -46,8 +46,7 @@ std::optional<std::string> Client::with_settings(Settings settings) {
     }
     settings_ = settings;
     for (std::size_t i = 0; i < settings_->workers; i++) {
-        std::shared_ptr<Runtime> runtime { new Runtime() };
-        workers_.push_back({ runtime, std::thread {} });
+        workers_.push_back(std::shared_ptr<Runtime> { new Runtime() });
     }
     return {};
 }
@@ -85,18 +84,19 @@ std::variant<std::shared_ptr<TcpSocket>, std::string> Client::tcp_connect(Addres
 }
 
 std::optional<std::string> Client::run() {
-    std::unique_lock<std::mutex> lck { mtx_ };
-    if (running_) {
+    bool expected = false;
+    if (!running_.compare_exchange_weak(expected, true)) {
         return "client has been running";
     }
+    std::unique_lock<std::mutex> lck { mtx_ };
     if (!settings_) {
         return "settings has been not set";
     }
-    for (std::size_t i = 0; i < settings_->workers; i++) {
-        auto& [runtime, thread] = workers_[i];
-        thread = std::thread { std::bind(&Runtime::run, runtime) };
+    for (auto& worker : workers_) {
+        if (auto err = worker->run()) {
+            return err;
+        }
     }
-    running_ = true;
     return {};
 }
 
@@ -105,13 +105,9 @@ void Client::stop() {
     if (!running_) {
         return;
     }
-    for (std::size_t i = 0; i < settings_->workers; i++) {
-        workers_[i].first->stop();
+    for (auto& worker : workers_) {
+        worker->stop();
     }
-    for (auto& [runtime, thread] : workers_) {
-        thread.join();
-    }
-    workers_.clear();
     running_ = false;
 }
 
@@ -121,5 +117,5 @@ bool Client::is_running() {
 
 std::shared_ptr<spinet::Runtime>& Client::select_runtime() {
     auto index = (choosen_index_++) % workers_.size();
-    return std::get<0>(workers_[index]);
+    return workers_[index];
 }

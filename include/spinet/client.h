@@ -33,7 +33,7 @@ class Client {
     bool is_running();
 
     private:
-    using Worker = std::pair<std::shared_ptr<Runtime>, std::thread>;
+    using Worker = std::shared_ptr<Runtime>;
 
     Client(Client&& other) = delete;
     Client& operator=(Client&& other) = delete;
