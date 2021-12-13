@@ -4,8 +4,6 @@
 #include "spinet.h"
 #include "util.h"
 
-long payload_size = 0;
-
 void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
 
 void write_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
