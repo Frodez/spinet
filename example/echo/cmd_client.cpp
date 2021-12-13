@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
         }
 
         // Send the data that buffer contains
-        int bytes_send = send(sock_fd, &buf, (size_t)strlen(buf), 0);
+        auto bytes_send = send(sock_fd, &buf, (size_t)strlen(buf), 0);
         // Check if message sending is successful
         if (bytes_send < 0) {
             std::cerr << "[ERROR] Message cannot be sent!\n";
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
         }
 
         // Wait for a message
-        int bytes_recv = recv(sock_fd, &buf, 4096, 0);
+        auto bytes_recv = recv(sock_fd, &buf, 4096, 0);
 
         // Check how many bytes recieved
         // If something gone wrong

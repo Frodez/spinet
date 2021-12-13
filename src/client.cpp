@@ -18,7 +18,7 @@ std::optional<std::string> Client::Settings::validate() {
 }
 
 Client::Settings Client::Settings::default_settings() {
-    return { workers: 1, reuse_port: false };
+    return { .workers = 1, .reuse_port = false };
 }
 
 Client::Client()

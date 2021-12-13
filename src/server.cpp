@@ -1,4 +1,5 @@
 #include <cstring>
+#include <utility>
 
 #include "errno.h"
 #include "unistd.h"
@@ -12,10 +13,10 @@ namespace spinet {
 
 class TcpAcceptor : public BaseAcceptor {
     public:
-    TcpAcceptor(int fd, Address address, Server::Settings* settings, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback)
+    TcpAcceptor(int fd, const Address& address, Server::Settings* settings, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback)
     : bind_address_ { address }
     , settings_ { settings }
-    , accept_callback_ { accept_callback } {
+    , accept_callback_ { std::move(accept_callback) } {
         fd_ = fd;
     }
     ~TcpAcceptor() {
@@ -60,7 +61,7 @@ std::optional<std::string> Server::Settings::validate() {
 }
 
 Server::Settings Server::Settings::default_settings() {
-    return { workers: 1, reuse_port: false };
+    return { .workers = 1, .reuse_port = false };
 }
 
 Server::Server()
@@ -97,7 +98,8 @@ bool Server::has_settings() {
     return settings_.has_value();
 }
 
-std::optional<std::string> Server::listen_tcp_endpoint(Address& address, std::function<void(std::shared_ptr<TcpSocket>)> accept_callback) {
+std::optional<std::string>
+Server::listen_tcp_endpoint(Address& address, const std::function<void(std::shared_ptr<TcpSocket>)>& accept_callback) {
     std::unique_lock<std::mutex> lck { mtx_ };
     if (running_) {
         return "server has been running";

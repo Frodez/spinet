@@ -1,0 +1,11 @@
+Diagnostics:
+  ClangTidy:
+    Add:
+      [
+        bugprone-*,
+        cert-*,
+        performance-*,
+      ]
+    Remove:
+      [
+      ]

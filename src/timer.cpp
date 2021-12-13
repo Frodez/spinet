@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "spinet/timer.h"
 
 using namespace spinet;
@@ -77,11 +79,11 @@ void Timer::exec() {
     running_ = false;
 }
 
-void Timer::async_wait_for(Duration duration, Callback callback) {
+void Timer::async_wait_for(Duration duration, const Callback &callback) {
     async_wait_until(std::chrono::steady_clock::now() + duration, callback);
 }
 
-void Timer::async_wait_until(TimePoint time_point, Callback callback) {
+void Timer::async_wait_until(TimePoint time_point, const Callback &callback) {
     auto time_since_epoch = time_point.time_since_epoch();
     TimePoint floored_time_point { time_since_epoch - (time_since_epoch % precision_) };
     std::unique_lock<std::mutex> lck { waiter_mtx_ };

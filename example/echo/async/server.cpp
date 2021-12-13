@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     spinet::Server server {};
-    spinet::Server::Settings settings { workers: (uint16_t)worker_threads, reuse_port: false };
+    spinet::Server::Settings settings { .workers = (uint16_t)worker_threads, .reuse_port = false };
     auto error = server.with_settings(settings);
     if (error) {
         std::cerr << error.value() << std::endl;

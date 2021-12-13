@@ -3,14 +3,13 @@
 #include <iostream>
 #include <memory>
 #include <string_view>
+#include <utility>
 
 #include "httpparser/httprequestparser.h"
 #include "httpparser/request.h"
 #include "util.h"
 
 #include "spinet.h"
-
-static const char A[] = "a";
 
 static const char RESPONSE_CONNECTION_CLOSED[] = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html; "
                                                  "charset=utf-8\r\nContent-Length: 14\r\n\r\nHello, world!";
@@ -21,7 +20,7 @@ static const char RESPONSE_KEEP_ALIVE[] = "HTTP/1.1 200 OK\r\nConnection: Keep-A
 class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     public:
     HttpConnection(std::shared_ptr<spinet::TcpSocket> socket, spinet::Timer& timer)
-    : socket_ { socket }
+    : socket_ { std::move(socket) }
     , timer_ { timer }
     , header_ { new uint8_t[256] }
     , header_cap_ { 256 }
@@ -168,7 +167,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     spinet::Server server {};
-    spinet::Server::Settings settings { workers: (uint16_t)worker_threads, reuse_port: false };
+    spinet::Server::Settings settings { .workers = (uint16_t)worker_threads, .reuse_port = false };
     auto error = server.with_settings(settings);
     if (error) {
         std::cerr << error.value() << std::endl;
@@ -177,7 +176,7 @@ int main(int argc, char* argv[]) {
     spinet::Timer timer {};
     timer.run();
     error = server.listen_tcp_endpoint(std::get<0>(address), [&timer](std::shared_ptr<spinet::TcpSocket> socket) {
-        auto connection = std::shared_ptr<HttpConnection>(new HttpConnection(socket, timer));
+        auto connection = std::make_shared<HttpConnection>(std::move(socket), timer);
         connection->start();
     });
     if (error) {

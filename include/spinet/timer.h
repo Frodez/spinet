@@ -23,8 +23,8 @@ class Timer {
     void stop();
     bool is_running();
 
-    void async_wait_for(Duration duration, Callback callback);
-    void async_wait_until(TimePoint time_point, Callback callback);
+    void async_wait_for(Duration duration, const Callback& callback);
+    void async_wait_until(TimePoint time_point, const Callback& callback);
 
     private:
     Timer(Timer&& other) = delete;

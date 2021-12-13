@@ -112,7 +112,7 @@ class TcpWriteTask {
 
 using namespace spinet;
 
-TcpSocket::TcpSocket(int fd, Address peer)
+TcpSocket::TcpSocket(int fd, const Address& peer)
 : closed_ { false }
 , peer_ { peer } {
     fd_ = fd;
@@ -122,7 +122,7 @@ TcpSocket::~TcpSocket() {
     close();
 }
 
-bool TcpSocket::async_read(uint8_t* buf, std::size_t size, ReadCallback callback) {
+bool TcpSocket::async_read(uint8_t* buf, std::size_t size, const ReadCallback& callback) {
     std::unique_lock<std::mutex> lck { read_mtx_ };
     if (closed_) {
         return false;
@@ -135,7 +135,7 @@ bool TcpSocket::async_read(uint8_t* buf, std::size_t size, ReadCallback callback
     return true;
 }
 
-bool TcpSocket::async_read_some(uint8_t* buf, std::size_t size, ReadCallback callback) {
+bool TcpSocket::async_read_some(uint8_t* buf, std::size_t size, const ReadCallback& callback) {
     std::unique_lock<std::mutex> lck { read_mtx_ };
     if (closed_) {
         return false;
@@ -148,7 +148,7 @@ bool TcpSocket::async_read_some(uint8_t* buf, std::size_t size, ReadCallback cal
     return true;
 }
 
-bool TcpSocket::async_write(uint8_t* buf, std::size_t size, WriteCallback callback) {
+bool TcpSocket::async_write(uint8_t* buf, std::size_t size, const WriteCallback& callback) {
     std::unique_lock<std::mutex> lck { write_mtx_ };
     if (closed_) {
         return false;
@@ -161,7 +161,7 @@ bool TcpSocket::async_write(uint8_t* buf, std::size_t size, WriteCallback callba
     return true;
 }
 
-bool TcpSocket::async_write_some(uint8_t* buf, std::size_t size, WriteCallback callback) {
+bool TcpSocket::async_write_some(uint8_t* buf, std::size_t size, const WriteCallback& callback) {
     std::unique_lock<std::mutex> lck { write_mtx_ };
     if (closed_) {
         return false;

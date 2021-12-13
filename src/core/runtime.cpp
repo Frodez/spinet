@@ -51,7 +51,7 @@ std::size_t Runtime::current_load() {
     return all_handles_.size();
 }
 
-void Runtime::register_handle(std::shared_ptr<Handle> handle) {
+void Runtime::register_handle(const std::shared_ptr<Handle>& handle) {
     Handle* raw_handle = handle.get();
     raw_handle->runtime_ = weak_from_this();
     int handle_fd = raw_handle->fd_;

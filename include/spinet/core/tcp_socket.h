@@ -20,13 +20,13 @@ class TcpSocket : public BaseSocket {
     using ReadCallback = std::function<void(Result, std::size_t)>;
     using WriteCallback = std::function<void(Result, std::size_t)>;
 
-    TcpSocket(int fd, Address peer);
+    TcpSocket(int fd, const Address& peer);
     ~TcpSocket();
 
-    bool async_read(uint8_t* buf, std::size_t size, ReadCallback callback);
-    bool async_read_some(uint8_t* buf, std::size_t size, ReadCallback callback);
-    bool async_write(uint8_t* buf, std::size_t size, WriteCallback callback);
-    bool async_write_some(uint8_t* buf, std::size_t size, WriteCallback callback);
+    bool async_read(uint8_t* buf, std::size_t size, const ReadCallback& callback);
+    bool async_read_some(uint8_t* buf, std::size_t size, const ReadCallback& callback);
+    bool async_write(uint8_t* buf, std::size_t size, const WriteCallback& callback);
+    bool async_write_some(uint8_t* buf, std::size_t size, const WriteCallback& callback);
 
     void cancel();
     bool is_closed();

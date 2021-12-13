@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <string_view>
+#include <utility>
 
 #include "httpparser/httprequestparser.h"
 #include "httpparser/request.h"
@@ -16,7 +17,7 @@ static const char RESPONSE[] = "HTTP/1.0 200 OK\r\nConnection: close\r\nContent-
 class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     public:
     HttpConnection(std::shared_ptr<spinet::TcpSocket> socket)
-    : socket_ { socket }
+    : socket_ { std::move(socket) }
     , header_ { new uint8_t[256] }
     , header_cap_ { 256 }
     , header_len_ { 0 }
@@ -134,14 +135,14 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     spinet::Server server {};
-    spinet::Server::Settings settings { workers: (uint16_t)worker_threads, reuse_port: false };
+    spinet::Server::Settings settings { .workers = (uint16_t)worker_threads, .reuse_port = false };
     auto error = server.with_settings(settings);
     if (error) {
         std::cerr << error.value() << std::endl;
         return EXIT_FAILURE;
     }
     error = server.listen_tcp_endpoint(std::get<0>(address), [](std::shared_ptr<spinet::TcpSocket> socket) {
-        auto connection = std::shared_ptr<HttpConnection>(new HttpConnection(socket));
+        auto connection = std::make_shared<HttpConnection>(std::move(socket));
         connection->start();
     });
     if (error) {

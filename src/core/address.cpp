@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "netdb.h"
 
 #include "spinet/core/address.h"
@@ -90,6 +92,6 @@ std::string Address::to_string() {
 
 Address::Address(Type type, std::string address, uint16_t port)
 : type_ { type }
-, address_ { address }
+, address_ { std::move(address) }
 , port_ { port } {
 }
