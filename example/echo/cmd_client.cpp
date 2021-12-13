@@ -8,26 +8,22 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// Note: Check for SIGPIPE and other socket related signals
+#include "util.h"
 
-// Checks If a c-style string is an integer
-bool is_int(char* c) {
-    while (*c != '\0') {
-        if (*c < '0' || *c > '9')
-            return false;
-        c++;
-    }
-    return true;
-}
+// Note: Check for SIGPIPE and other socket related signals
 
 int main(int argc, char** argv) {
     // Check arguments
-    if (argc < 3 || !is_int(argv[2])) {
-        std::cerr << "[ERROR] Parameters are not valid!\n";
-        return -1;
+    if (argc != 2) {
+        std::cerr << "Usage: PROGRAM_NAME ${address} ${port}" << std::endl;
+        return EXIT_FAILURE;
     }
 
-    int port { std::atoi(argv[2]) };
+    auto port = expectInt(argv[2], "port is an invalid number.");
+    if (port < 0 || port > 65535) {
+        std::cerr << "port should be between 0 and 65535." << std::endl;
+        return EXIT_FAILURE;
+    }
     // Address and host info
     sockaddr_in server_addr;
     hostent* server;
@@ -37,7 +33,7 @@ int main(int argc, char** argv) {
     // Check If the socket is created
     if (sock_fd < 0) {
         std::cerr << "[ERROR] Socket cannot be created!\n";
-        return -2;
+        return EXIT_FAILURE;
     }
 
     std::cout << "[INFO] Socket has been created.\n";
@@ -47,7 +43,7 @@ int main(int argc, char** argv) {
     server = gethostbyname(argv[1]);
     if (!server) {
         std::cerr << "[ERROR] No such host!\n";
-        return -3;
+        return EXIT_FAILURE;
     }
     std::cout << "[INFO] Hostname is found.\n";
 
@@ -61,12 +57,12 @@ int main(int argc, char** argv) {
         std::memcpy((char*)server->h_addr_list[0], (char*)&server_addr.sin_addr, server->h_length);
     else {
         std::cerr << "[ERROR] There is no a valid address for that hostname!\n";
-        return -5;
+        return EXIT_FAILURE;
     }
 
     if (connect(sock_fd, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         std::cerr << "Connection cannot be established!\n";
-        return -6;
+        return EXIT_FAILURE;
     }
     std::cout << "[INFO] Connection established.\n";
 
@@ -125,5 +121,5 @@ int main(int argc, char** argv) {
     close(sock_fd);
     std::cout << "[INFO] Socket is closed.\n";
 
-    return 0;
+    return EXIT_SUCCESS;
 }

@@ -88,31 +88,38 @@ ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/release/lib/
 #--------------------for the examples start--------------------
 if(NOT NO_EXAMPLES)
     add_executable(cmd_echo_client ${PROJECT_SOURCE_DIR}/example/echo/cmd_client.cpp)
+    target_include_directories(cmd_echo_client PUBLIC ${PROJECT_SOURCE_DIR}/example/include)
     target_compile_options(cmd_echo_client PUBLIC -Wno-unused-parameter)
 
     add_executable(async_echo_server ${PROJECT_SOURCE_DIR}/example/echo/async/server.cpp)
+    target_include_directories(async_echo_server PUBLIC ${PROJECT_SOURCE_DIR}/example/include)
     target_compile_options(async_echo_server PUBLIC -Wno-unused-parameter)
     target_link_libraries(async_echo_server spinet_static Threads::Threads)
 
     add_executable(async_echo_client ${PROJECT_SOURCE_DIR}/example/echo/async/client.cpp)
+    target_include_directories(async_echo_client PUBLIC ${PROJECT_SOURCE_DIR}/example/include)
     target_compile_options(async_echo_client PUBLIC -Wno-unused-parameter)
     target_link_libraries(async_echo_client spinet_static Threads::Threads)
 
     add_executable(async_echo_client2 ${PROJECT_SOURCE_DIR}/example/echo/async/client2.cpp)
+    target_include_directories(async_echo_client2 PUBLIC ${PROJECT_SOURCE_DIR}/example/include)
     target_compile_options(async_echo_client2 PUBLIC -Wno-unused-parameter)
     target_link_libraries(async_echo_client2 spinet_static Threads::Threads)
 
     add_executable(http_server_simple ${PROJECT_SOURCE_DIR}/example/http/simple/server.cpp)
+    target_include_directories(http_server_simple PUBLIC ${PROJECT_SOURCE_DIR}/example/include)
     target_include_directories(http_server_simple PUBLIC ${PROJECT_SOURCE_DIR}/example/http/include)
     target_compile_options(http_server_simple PUBLIC -Wno-unused-parameter)
     target_link_libraries(http_server_simple spinet_static Threads::Threads)
 
     add_executable(http_server_keep_alive ${PROJECT_SOURCE_DIR}/example/http/keep_alive/server.cpp)
+    target_include_directories(http_server_keep_alive PUBLIC ${PROJECT_SOURCE_DIR}/example/include)
     target_include_directories(http_server_keep_alive PUBLIC ${PROJECT_SOURCE_DIR}/example/http/include)
     target_compile_options(http_server_keep_alive PUBLIC -Wno-unused-parameter)
     target_link_libraries(http_server_keep_alive spinet_static Threads::Threads)
 
     add_executable(address_resolve ${PROJECT_SOURCE_DIR}/example/address/resolve.cpp)
+    target_include_directories(address_resolve PUBLIC ${PROJECT_SOURCE_DIR}/example/include)
     target_compile_options(address_resolve PUBLIC -Wno-unused-parameter)
     target_link_libraries(address_resolve spinet_static Threads::Threads)
 endif()
