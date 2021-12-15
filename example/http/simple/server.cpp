@@ -41,7 +41,7 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
         auto len = header_cap_ - header_len_;
         auto self = shared_from_this();
         socket_->async_read_some(buf, len, [this, self](spinet::Result res, std::size_t len) {
-            if (res) {
+            if (!res) {
                 socket_->close();
                 return;
             }
@@ -58,15 +58,14 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
                 for (auto& item : request.headers) {
                     if (item.name == "Content-Length") {
                         // receive body
-                        char* ptr = nullptr;
-                        body_len_ = strtol(item.value.c_str(), &ptr, 10);
-                        if (*ptr != 0) {
-                            // invalid number
+                        try {
+                            body_len_ = expectInt(item.value.c_str(), "");
+                        } catch (const std::exception& e) {
                             break;
                         }
                         body_ = std::shared_ptr<uint8_t[]> { new uint8_t[body_len_] };
                         socket_->async_read(body_.get(), body_len_, [this, self](spinet::Result res, std::size_t len) {
-                            if (res) {
+                            if (!res) {
                                 socket_->close();
                                 return;
                             }
@@ -82,7 +81,7 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection> {
     void send_response() {
         auto self = shared_from_this();
         socket_->async_write((uint8_t*)RESPONSE, sizeof(RESPONSE), [this, self](spinet::Result res, std::size_t len) {
-            if (res) {
+            if (!res) {
             }
             socket_->close();
         });

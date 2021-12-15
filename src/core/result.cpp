@@ -29,11 +29,11 @@ Result::Result(const std::string& msg)
 }
 
 Result::operator bool() {
-    return err_.has_value();
+    return !err_.has_value();
 }
 
 bool Result::operator!() {
-    return !err_.has_value();
+    return err_.has_value();
 }
 
 bool Result::is_custom_error() {

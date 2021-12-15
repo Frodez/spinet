@@ -9,7 +9,7 @@ void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet:
 void write_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer);
 
 void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
-    if (res) {
+    if (!res) {
         socket->close();
         return;
     }
@@ -18,7 +18,7 @@ void read_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet:
 }
 
 void write_callback(spinet::Result res, std::size_t size, std::shared_ptr<spinet::TcpSocket> socket, std::shared_ptr<uint8_t[]> buffer) {
-    if (res) {
+    if (!res) {
         socket->close();
         return;
     }
