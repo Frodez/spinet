@@ -128,9 +128,6 @@ bool TcpSocket::async_read(uint8_t* buf, std::size_t size, const ReadCallback& c
         return false;
     }
     TcpReadTask task { buf, size, TaskStrategy::UNTIL_FINISHED };
-    if (read_task_queue_.empty()) {
-        task.exec(fd_);
-    }
     read_task_queue_.push_back({ task, callback });
     return true;
 }
@@ -141,9 +138,6 @@ bool TcpSocket::async_read_some(uint8_t* buf, std::size_t size, const ReadCallba
         return false;
     }
     TcpReadTask task { buf, size, TaskStrategy::TRY };
-    if (read_task_queue_.empty()) {
-        task.exec(fd_);
-    }
     read_task_queue_.push_back({ task, callback });
     return true;
 }
@@ -154,9 +148,6 @@ bool TcpSocket::async_write(uint8_t* buf, std::size_t size, const WriteCallback&
         return false;
     }
     TcpWriteTask task { buf, size, TaskStrategy::UNTIL_FINISHED };
-    if (write_task_queue_.empty()) {
-        task.exec(fd_);
-    }
     write_task_queue_.push_back({ task, callback });
     return true;
 }
@@ -167,9 +158,6 @@ bool TcpSocket::async_write_some(uint8_t* buf, std::size_t size, const WriteCall
         return false;
     }
     TcpWriteTask task { buf, size, TaskStrategy::TRY };
-    if (write_task_queue_.empty()) {
-        task.exec(fd_);
-    }
     write_task_queue_.push_back({ task, callback });
     return true;
 }
