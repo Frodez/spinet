@@ -70,11 +70,12 @@ void Runtime::register_handle(const std::shared_ptr<Handle>& handle) {
         ::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, handle_fd, &ev);
         all_handles_.insert({ handle_fd, handle });
     } else {
-        // pre-remove the old handle
+        // pre-remove and close the old handle for the special situation
         auto prev_handle = prev->second;
         removable_handles_.push_back(prev_handle);
         Handle* prev_raw_handle = prev_handle.get();
         prev_raw_handle->runtime_.reset(); // prevent the recursive call for deregister_handle
+        prev_raw_handle->close();
         if (auto socket = dynamic_cast<BaseSocket*>(prev_raw_handle)) {
             all_sockets_.erase(socket);
         }
@@ -152,9 +153,6 @@ void Runtime::exec() {
         }
         {
             std::unique_lock<std::mutex> lck { handles_mtx_ };
-            for (auto& removable_handle : removable_handles_) {
-                removable_handle->close();
-            }
             removable_handles_.clear();
         }
     }
@@ -167,12 +165,26 @@ void Runtime::release_all_handles() {
     std::unique_lock<std::mutex> lck { handles_mtx_ };
     for (auto& [fd, handle] : all_handles_) {
         handle->runtime_.reset();
-        handle->close();
+        ::epoll_event ev { 0, { 0 } };
+        auto ptr = handle.get();
+        ev.data.ptr = ptr;
+        if (dynamic_cast<BaseSocket*>(ptr)) {
+            ev.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLET | EPOLLRDHUP;
+        } else {
+            ev.events = EPOLLIN | EPOLLRDHUP;
+        }
+        ::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, &ev);
     }
-    for (auto& removable_handle : removable_handles_) {
-        removable_handle->close();
+    {
+        Map<int, std::shared_ptr<Handle>> cleanup{};
+        all_handles_.swap(cleanup);
     }
-    all_handles_.clear();
-    all_sockets_.clear();
-    removable_handles_.clear();
+    {
+        Set<BaseSocket*> cleanup{};
+        all_sockets_.swap(cleanup);
+    }
+    {
+        std::vector<std::shared_ptr<Handle>> cleanup{};
+        removable_handles_.swap(cleanup);
+    }
 }
