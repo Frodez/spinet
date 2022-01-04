@@ -4,8 +4,8 @@
 #include <chrono>
 #include <condition_variable>
 #include <functional>
-#include <map>
 #include <mutex>
+#include <queue>
 #include <thread>
 
 namespace spinet {
@@ -27,6 +27,14 @@ class Timer {
     void async_wait_until(TimePoint time_point, const Callback& callback);
 
     private:
+    struct WaitOperation {
+        TimePoint time_point;
+        Callback callback;
+        friend bool operator<(const WaitOperation& x, const WaitOperation& y) {
+            return x.time_point < y.time_point;
+        }
+    };
+
     Timer(Timer&& other) = delete;
     Timer& operator=(Timer&& other) = delete;
     Timer(const Timer& other) = delete;
@@ -43,7 +51,7 @@ class Timer {
 
     std::mutex waiter_mtx_;
     std::condition_variable waiter_cv_;
-    std::multimap<TimePoint, Callback> waiters_;
+    std::priority_queue<WaitOperation> waiters_;
 };
 
 }

@@ -51,12 +51,17 @@ void Timer::exec() {
         {
             std::unique_lock<std::mutex> lck { waiter_mtx_ };
             time_point = std::chrono::steady_clock::now();
-            auto lower = waiters_.begin();
-            auto upper = waiters_.upper_bound(time_point);
-            std::vector<std::pair<TimePoint, Callback>> callbacks { lower, upper };
-            waiters_.erase(lower, upper);
+            std::vector<WaitOperation> operations {};
+            while (!waiters_.empty()) {
+                auto& operation = waiters_.top();
+                if (operation.time_point > time_point) {
+                    break;
+                }
+                operations.push_back(operation);
+                waiters_.pop();
+            }
             lck.unlock();
-            for (auto& [prev_time_point, callback] : callbacks) {
+            for (auto& [prev_time_point, callback] : operations) {
                 callback(prev_time_point, time_point);
             }
         }
@@ -75,22 +80,23 @@ void Timer::exec() {
         }
     }
     std::unique_lock<std::mutex> lck { waiter_mtx_ };
-    waiters_.clear();
+    {
+        std::priority_queue<WaitOperation, std::vector<WaitOperation>> empty_queue {};
+        waiters_.swap(empty_queue);
+    }
     running_ = false;
 }
 
-void Timer::async_wait_for(Duration duration, const Callback &callback) {
+void Timer::async_wait_for(Duration duration, const Callback& callback) {
     async_wait_until(std::chrono::steady_clock::now() + duration, callback);
 }
 
-void Timer::async_wait_until(TimePoint time_point, const Callback &callback) {
-    auto time_since_epoch = time_point.time_since_epoch();
-    TimePoint floored_time_point { time_since_epoch - (time_since_epoch % precision_) };
+void Timer::async_wait_until(TimePoint time_point, const Callback& callback) {
     std::unique_lock<std::mutex> lck { waiter_mtx_ };
     if (waiters_.empty()) {
-        waiters_.insert({ floored_time_point, callback });
+        waiters_.push({ time_point, callback });
         waiter_cv_.notify_one();
     } else {
-        waiters_.insert({ floored_time_point, callback });
+        waiters_.push({ time_point, callback });
     }
 }
