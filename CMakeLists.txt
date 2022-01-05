@@ -18,6 +18,11 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 #--------------------for the options start--------------------
 option(NO_EXAMPLES "Build without example programs" OFF)
 option(ENABLE_ASAN "Enable the address sanitizer" OFF)
+message("")
+message("SETTINGS:")
+message("NO_EXAMPLES=${NO_EXAMPLES}")
+message("ENABLE_ASAN=${ENABLE_ASAN}")
+message("")
 #--------------------for the options end--------------------
 
 
@@ -25,14 +30,12 @@ option(ENABLE_ASAN "Enable the address sanitizer" OFF)
 #--------------------for the compiler start--------------------
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-terminate")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-terminate")
-set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -Wall -Wextra -Wno-terminate")
+add_compile_options(-Wall)
+add_compile_options(-Wextra)
 
-if(ENABLE_ASAN) 
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
+if(ENABLE_ASAN)
+    add_compile_options(-fno-omit-frame-pointer)
+    add_compile_options(-fsanitize=address)
 endif()
 #--------------------for the compiler end--------------------
 
