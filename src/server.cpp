@@ -26,6 +26,10 @@ class TcpAcceptor : public BaseAcceptor {
     void do_accept() override {
         ::sockaddr_in socket_address {};
         ::socklen_t address_size = sizeof(socket_address);
+        auto runtime = runtime_.lock();
+        if (!runtime) {
+            return;
+        }
         while (true) {
             int socket_fd = ::accept(fd_, (::sockaddr*)&socket_address, &address_size);
             if (socket_fd == -1) {
@@ -37,9 +41,7 @@ class TcpAcceptor : public BaseAcceptor {
             }
             std::shared_ptr<TcpSocket> socket { new TcpSocket(
             socket_fd, std::get<0>(Address::parse(from_sockaddr_in(socket_address), ntohs(socket_address.sin_port)))) };
-            if (auto runtime = runtime_.lock()) {
-                runtime->register_handle(socket);
-            }
+            runtime->register_handle(socket);
             accept_callback_(socket);
         }
     }
