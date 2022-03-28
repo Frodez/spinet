@@ -26,6 +26,9 @@ void Timer::run() {
         return;
     }
     std::unique_lock<std::mutex> lck { thread_mtx_ };
+    if (timer_thread_.joinable()) {
+        timer_thread_.join();
+    }
     timer_thread_ = std::thread { &Timer::exec, this };
 }
 
@@ -36,7 +39,9 @@ void Timer::stop() {
             waiter_cv_.notify_all();
         }
         std::unique_lock<std::mutex> lck { thread_mtx_ };
-        timer_thread_.join();
+        if (timer_thread_.joinable()) {
+            timer_thread_.join();
+        }
     }
 }
 

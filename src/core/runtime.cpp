@@ -30,6 +30,9 @@ std::optional<std::string> Runtime::run() {
         return "the server is running";
     }
     std::unique_lock<std::mutex> lck { thread_mtx_ };
+    if (runtime_thread_.joinable()) {
+        runtime_thread_.join();
+    }
     runtime_thread_ = std::thread { &Runtime::exec, this };
     return {};
 }
@@ -38,7 +41,9 @@ void Runtime::stop() {
     if (running_) {
         stopped_ = true;
         std::unique_lock<std::mutex> lck { thread_mtx_ };
-        runtime_thread_.join();
+        if (runtime_thread_.joinable()) {
+            runtime_thread_.join();
+        }
     }
 }
 
@@ -176,15 +181,15 @@ void Runtime::release_all_handles() {
         ::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, &ev);
     }
     {
-        Map<int, std::shared_ptr<Handle>> cleanup{};
+        Map<int, std::shared_ptr<Handle>> cleanup {};
         all_handles_.swap(cleanup);
     }
     {
-        Set<BaseSocket*> cleanup{};
+        Set<BaseSocket*> cleanup {};
         all_sockets_.swap(cleanup);
     }
     {
-        std::vector<std::shared_ptr<Handle>> cleanup{};
+        std::vector<std::shared_ptr<Handle>> cleanup {};
         removable_handles_.swap(cleanup);
     }
 }
